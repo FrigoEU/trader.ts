@@ -7,4 +7,5 @@ export * as NetworkRemote from "./network.remote";
 export * as Remote from "./types/remote";
 export * as Watchevent from "./types/watchevent";
 export * as Ui from "./ui";
+export * as Form from "./ui.form";
 export * as ClientComponents from "./clientcomponents/clientcomponents";
