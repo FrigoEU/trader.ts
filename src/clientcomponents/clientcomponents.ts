@@ -9,10 +9,7 @@ type ClientComponent<Props> = (props: Props) => HTMLElement | HTMLElement[];
 type ClientComponents<T extends { [key: string]: any }> = {
   [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
 };
-type GetPropsFromComponent<T> = T extends ClientComponent<infer Props>
-  ? Props
-  : never;
-export type ClientComponentsExport<T extends ClientComponents<any>> = keyof T;
+export type ClientComponentsExport<T extends ClientComponents<any>> = T;
 
 // Should be in CLIENTSIDE bundle
 export function registerClientComponents<T extends { [key: string]: any }>(
@@ -56,6 +53,12 @@ export function renderInBrowser<
     return renderInBrowserImpl(name as string, p);
   };
 }
+
+export type GetPropsFromComponent<T> = T extends () => Promise<
+  ClientComponent<infer Props>
+>
+  ? Props
+  : never;
 
 function renderInBrowserImpl(name: string, p: any): HTMLElement[] {
   // serverside: make script tag, stringify props and pass "serialized: true"

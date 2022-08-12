@@ -1,11 +1,12 @@
 import * as joda from "@js-joda/core";
 import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
+import { Either, Left, Right } from "purify-ts";
 
 // TODO: maybe keeping these errors is a waste on production?
 
 export interface Route<Params> {
-  parse: (s: string) => Params | Error;
+  parse: (s: string) => Either<Error, Params>;
   link: (p: Params) => string;
   mkClientSideLinkForHref: (p: Params) => string;
   parts: Part<any>[];
@@ -46,7 +47,7 @@ type ExtractRouteParams<
 const regex = /{[^}]+}|[^{}]*/g;
 // TODO replace with purify Codec?
 export type Encoder<T> = {
-  parse: (s: string) => Error | T;
+  parse: (s: string) => Either<Error, T>;
   serialize: (t: T) => string;
   swaggerType?: OpenAPIV3.NonArraySchemaObjectType;
 };
@@ -63,7 +64,7 @@ export const builtinEncoders: {
     swaggerType: "number",
   },
   string: {
-    parse: id,
+    parse: Right,
     serialize: id,
     swaggerType: "string",
   },
@@ -83,20 +84,22 @@ export const builtinEncoders: {
     swaggerType: "string",
   },
   "number[]|null": {
-    parse: function (str) {
+    parse: function (str): Either<Error, number[] | null> {
       if (str.trim() === "-") {
-        return null;
+        return Right(null);
       } else if (str.trim() === "") {
-        return [];
+        return Right([]);
       } else {
-        return str.split("_").map((s) => {
-          const res = parseFloatSafe(s);
-          if (!res) {
-            throw new Error("Can't deserialize to float: " + s);
-          } else {
-            return res;
-          }
-        });
+        return Right(
+          str.split("_").map((s) => {
+            const res = parseFloatSafe(s);
+            if (!res) {
+              throw new Error("Can't deserialize to float: " + s);
+            } else {
+              return res;
+            }
+          })
+        );
       }
     },
     serialize: function (numArr) {
@@ -109,20 +112,22 @@ export const builtinEncoders: {
     swaggerType: "string",
   },
   "number[]": {
-    parse: function (str) {
+    parse: function (str): Either<Error, number[]> {
       if (str.trim() === "-") {
-        return [];
+        return Right([]);
       } else if (str.trim() === "") {
-        return [];
+        return Right([]);
       } else {
-        return str.split("_").map((s) => {
-          const res = parseFloatSafe(s);
-          if (!res) {
-            throw new Error("Can't deserialize to float: " + s);
-          } else {
-            return res;
-          }
-        });
+        return Right(
+          str.split("_").map((s) => {
+            const res = parseFloatSafe(s);
+            if (!res) {
+              throw new Error("Can't deserialize to float: " + s);
+            } else {
+              return res;
+            }
+          })
+        );
       }
     },
     serialize: function (numArr) {
@@ -136,39 +141,39 @@ export const builtinEncoders: {
   },
 };
 // const nullableStringEncoder:
-function parseNumber(str: string): Error | number {
+function parseNumber(str: string): Either<Error, number> {
   const res = Number.parseFloat(str);
   if (isNaN(res)) {
-    return new Error("Failed to parse into number: " + str);
+    return Left(new Error("Failed to parse into number: " + str));
   } else {
-    return res;
+    return Right(res);
   }
 }
-function parseBoolean(s: string): boolean | Error {
+function parseBoolean(s: string): Either<Error, boolean> {
   return s === "true"
-    ? true
+    ? Right(true)
     : s === "false"
-    ? false
-    : new Error("Failed to parse into boolean: " + s);
+    ? Right(false)
+    : Left(new Error("Failed to parse into boolean: " + s));
 }
 function serializeBoolean(b: boolean): string {
   return b ? "true" : "false";
 }
-function parseDate(s: string): joda.LocalDate | Error {
+function parseDate(s: string): Either<Error, joda.LocalDate> {
   try {
-    return joda.LocalDate.parse(s);
+    return Right(joda.LocalDate.parse(s));
   } catch (err) {
-    return err as Error;
+    return Left(err as Error);
   }
 }
 function serializeDate(d: joda.LocalDate): string {
   return d.toString();
 }
-function parseInstant(s: string): joda.Instant | Error {
+function parseInstant(s: string): Either<Error, joda.Instant> {
   try {
-    return joda.Instant.parse(s);
+    return Right(joda.Instant.parse(s));
   } catch (err) {
-    return err as Error;
+    return Left(err as Error);
   }
 }
 function serializeInstant(d: joda.Instant): string {
@@ -193,26 +198,24 @@ export function makeEncoderFromSum<
       const foundOption = opts[key];
       return key + "~" + foundOption.serialize(val);
     },
-    parse: function (str) {
+    parse: function (str): Either<Error, SumEncoderHelper<K, Options>> {
       const split = str.split("~");
       if (split && split[0] && split[1]) {
         const foundOption = opts[split[0]];
         if (!foundOption) {
-          return new Error(`${split[0]} is not a valid case`);
+          return Left(new Error(`${split[0]} is not a valid case`));
         } else {
           const parsedValue = foundOption.parse(split[1]);
-          if (parsedValue instanceof Error) {
-            parsedValue.message =
-              "In case " + split[0] + ": " + parsedValue.message;
-            return parsedValue;
-          } else {
-            return {
-              [split[0]]: parsedValue,
-            } as SumEncoderHelper<K, Options>;
-          }
+          return parsedValue.bimap(
+            (err) => new Error("In case " + split[0] + ": " + err.message),
+            (parsed) =>
+              ({
+                [split[0]]: parsed,
+              } as SumEncoderHelper<K, Options>)
+          );
         }
       } else {
-        return new Error(`No "~" found to split cases`);
+        return Left(new Error(`No "~" found to split cases`));
       }
     },
   };
@@ -301,25 +304,28 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
       parse: function (str_: string) {
         const str =
           str_.indexOf("?") >= 0 ? str_.slice(0, str_.indexOf("?")) : str_; // Strip query string, this library does not use them
-        const acc: { [key: string]: any } = {};
+        const acc = {} as ExtractRouteParams<T, ExtraTypeMapping>;
         let rest = str;
         for (let p of cleanedParts) {
           if (p.tag === "constant") {
             if (rest.substring(0, p.constant.length) === p.constant) {
               rest = rest.substring(p.constant.length);
             } else {
-              return new Error(
-                `Tried to match constant "${p.constant}" but failed. Remaining url: ${rest}`
+              return Left(
+                new Error(
+                  `Tried to match constant "${p.constant}" but failed. Remaining url: ${rest}`
+                )
               );
             }
           } else if (p.tag === "capture") {
             const captured = rest.split("/")[0];
             const parsed = p.encoder.parse(decodeURIComponent(captured));
-            if (parsed && parsed instanceof Error) {
-              parsed.message = parsed.message + ". Remaining url: " + rest;
-              return parsed;
+            if (parsed.isLeft()) {
+              const err = parsed.extract();
+              err.message = err.message + ". Remaining url: " + rest;
+              return Left(err);
             } else {
-              acc[p.key] = parsed;
+              (acc as any)[p.key] = parsed.extract();
               rest = rest.substring(captured.length);
             }
           } else {
@@ -330,10 +336,10 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
           rest.trim() === "" ||
           rest.trim().startsWith("?") /* allow query params after url */
         ) {
-          return acc as any;
+          return Right(acc);
         } else {
-          return new Error(
-            `Tried to match url, but have remaining string: ${rest}`
+          return Left(
+            new Error(`Tried to match url, but have remaining string: ${rest}`)
           );
         }
       },
@@ -361,18 +367,15 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
 
 export function makeEncoderFromCodec<T>(codec: Codec<T>): Encoder<T> {
   return {
-    parse: (str): Error | T => {
+    parse: (str): Either<Error, T> => {
       let parsed;
       try {
         parsed = JSON.parse(str);
       } catch (err) {
-        return err as Error;
+        return Left(err as Error);
       }
       const res = codec.decode(parsed);
-      return res.caseOf({
-        Left: (e) => new Error(e),
-        Right: (a): Error | T => a,
-      });
+      return res.mapLeft((str) => new Error(str));
     },
     serialize: (a: T) => JSON.stringify(codec.encode(a)),
   };

@@ -21,8 +21,8 @@ declare module "http" {
   }
 }
 
-type ServerRequest = IncomingMessage | Http2ServerRequest;
-type ServerResponse = ServerResponse_ | Http2ServerResponse;
+export type ServerRequest = IncomingMessage | Http2ServerRequest;
+export type ServerResponse = ServerResponse_ | Http2ServerResponse;
 
 const isDev = process.env.NODE_ENV || "development" === "development";
 
@@ -613,10 +613,8 @@ export class Router<Context, LoginToken> {
     for (let spec of this.specs) {
       if (spec.method.toLowerCase() === req.method?.toLowerCase()) {
         const parsed = spec.route.parse(url || "");
-        if (parsed instanceof Error) {
-          // console.log(parsed.message);
-        } else {
-          spec.run(opts, req, res, parsed);
+        if (parsed.isRight()) {
+          spec.run(opts, req, res, parsed.extract());
           return true;
         }
       }
