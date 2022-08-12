@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "files": ["src/**"],
   "main": "src/index.ts",
   "dependencies": {
