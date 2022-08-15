@@ -1,5 +1,5 @@
 /node_modules/
 /.log/
 /out/
-/src/**/*.js
+*.js
 /.direnv/
