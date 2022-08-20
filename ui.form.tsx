@@ -405,6 +405,16 @@ export function connectSumSources<
   }
 }
 
+function mapToUnique<T>(
+  getUnique: (t: T) => string,
+  elements: Array<Source<InputModel<T>>>
+) {
+  return elements.map((elS) => {
+    const exel = elS.get();
+    return exel.tag === "valid" ? getUnique(exel.item) : null;
+  });
+}
+
 export function connectListSources<T>(
   listS: Source<InputModel<Array<T>>>,
   elementsS: Source<Array<Source<InputModel<T>>>>,
@@ -469,13 +479,12 @@ export function connectListSources<T>(
 
       // TODO: Do we need to look for removed items here? To clean up their listeners maybe?
 
-      function mapToUnique(elements: Array<Source<InputModel<T>>>) {
-        return elements.map((elS) => {
-          const exel = elS.get();
-          return exel.tag === "valid" ? getUnique(exel.item) : null;
-        });
-      }
-      if (!isEqual(mapToUnique(existingElements), mapToUnique(newItems))) {
+      if (
+        !isEqual(
+          mapToUnique(getUnique, existingElements),
+          mapToUnique(getUnique, newItems)
+        )
+      ) {
         elementsS.set(newItems);
       }
     } else if (p.tag === "invalid") {
