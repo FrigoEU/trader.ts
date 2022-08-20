@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.1.4",
+  "version": "1.1.5",
   "files": [
     "**/*.ts",
     "**/*.tsx"
@@ -13,13 +13,11 @@
     "hyperscript": "frigoeu/hyperscript#71eacd784f028b691d1be704df34910881df4f2a",
     "lodash": "^4.17.21",
     "postgres": "^2.0.0-beta.5",
+    "@openapi-contrib/json-schema-to-openapi-schema": "2.1.0",
     "purify-ts": "^0.16.1"
   },
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation"
-  },
-  "peerDependencies": {
-    "@openapi-contrib/json-schema-to-openapi-schema": "2.1.0"
   },
   "devDependencies": {
     "@types/cookie": "^0.4.0",
