@@ -17,6 +17,7 @@
   },
   "include": [    
     "./*.ts",
+    "./*.tsx",
     "./types/**/*.ts",
     "./clientcomponents/**/*.ts"
   ],
