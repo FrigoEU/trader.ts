@@ -1,4 +1,3 @@
-import convert from "@openapi-contrib/json-schema-to-openapi-schema";
 import { OpenAPIV3 } from "openapi-types";
 import { checkAllCasesHandled, mapPartial } from "./utils";
 import { InternalSpec, Router } from "./router";
@@ -54,7 +53,8 @@ async function genSwaggerF(
             required: true,
             content: {
               "application/json": {
-                schema: fixNullableProperties(await convert(body.schema())),
+                schema: fixNullableProperties(body.schema() as any), //TBD
+                // schema: fixNullableProperties(await convert(body.schema())),
               },
             },
           };
@@ -71,7 +71,8 @@ async function genSwaggerF(
             : {
                 "application/json": {
                   schema: fixNullableProperties(
-                    await convert(returns.schema())
+                    returns.schema() as any // TBD
+                    // await convert(returns.schema())
                   ),
                 },
               },
