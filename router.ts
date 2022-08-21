@@ -5,7 +5,7 @@ import type {
   ServerResponse as ServerResponse_,
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
-import { pullAt, takeRightWhile } from "lodash";
+import { pullAt, takeRightWhile } from "lodash-es";
 import { Codec, nullType } from "purify-ts/Codec";
 import type { Either } from "purify-ts/Either";
 import type { Route } from "./route";

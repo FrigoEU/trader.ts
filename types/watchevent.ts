@@ -1,4 +1,4 @@
-import { chain, orderBy } from "lodash";
+import { chain, orderBy } from "lodash-es";
 import * as c from "purify-ts/Codec";
 import { checkAllCasesHandled } from "../utils";
 
