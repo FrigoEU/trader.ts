@@ -7,15 +7,21 @@ import h from "hyperscript";
 
 type ClientComponent<Props> = (props: Props) => HTMLElement | HTMLElement[];
 type ClientComponents<T extends { [key: string]: any }> = {
-  [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
+  [K in keyof T]:
+    | ClientComponent<T[K]>
+    | (() => Promise<ClientComponent<T[K]>>);
 };
 export type ClientComponentsExport<T extends ClientComponents<any>> = T;
 
 // Should be in CLIENTSIDE bundle
 export function registerClientComponents<T extends { [key: string]: any }>(
-  components: {
-    [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
-  }
+  components:
+    | {
+        [K in keyof T]: ClientComponent<T[K]>;
+      }
+    | {
+        [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
+      }
 ): ClientComponents<T> {
   (window as any).clientcomponents = components;
   (window as any).instantiateComponent = instantiateComponent;
@@ -96,7 +102,16 @@ ${
     `var currentScript = document.currentScript;
 var dataScript = currentScript.previousSibling;
 dataScript.remove();
-window.instantiateComponent('${name}', dataScript.textContent);`
+var textContent = dataScript.textContent;
+go();
+
+function go(){
+  if (window.instantiateComponent){
+    window.instantiateComponent(currentScript, '${name}', textContent);
+  } else {
+    setTimeout(go, 1)
+  }
+}`
   );
 
   return [jsondata, scr];
@@ -111,7 +126,11 @@ Wrap this in another component so function definition happens on client side.
 `;
 }
 
-function instantiateComponent(name: string, propsIn: string) {
+function instantiateComponent(
+  currentScript: HTMLOrSVGScriptElement,
+  name: string,
+  propsIn: string
+) {
   const props = deserializeProps(propsIn);
 
   const clientcomponents: ClientComponents<any> = (window as any)
@@ -126,24 +145,24 @@ function instantiateComponent(name: string, propsIn: string) {
     throw new Error(`Critical error: no component named ${name} found`);
   }
 
-  const currentScript = document.currentScript;
-
   if (!currentScript) {
     throw new Error(`Critical error: currentScript not found`);
   }
 
   const com = renderComponentClientside(
     currentScript.parentNode!,
+    currentScript,
     component,
     props
   );
-  currentScript.parentNode!.insertBefore(com, currentScript);
+
   currentScript.remove();
 }
 
 function renderComponentClientside<Props>(
   parent: ParentNode,
-  c: () => Promise<ClientComponent<Props>>,
+  currentScript: HTMLOrSVGScriptElement,
+  c: ClientComponent<Props> | (() => Promise<ClientComponent<Props>>),
   p: Props
 ): Comment {
   // clientside: just do the "run" function and insert the elements
@@ -152,9 +171,26 @@ function renderComponentClientside<Props>(
   (com as any).component = c;
   (com as any).props = p;
 
-  c().then(function (render) {
+  parent.insertBefore(com, currentScript);
+
+  const renderOrP = c(p);
+
+  if (renderOrP instanceof Promise) {
+    renderOrP.then(function (render) {
+      if (parent.isConnected) {
+        const els = render(p);
+        const df = new DocumentFragment();
+        if (Array.isArray(els)) {
+          els.forEach((el) => df.append(el));
+        } else {
+          df.append(els);
+        }
+        parent.insertBefore(df, com);
+      }
+    });
+  } else {
     if (parent.isConnected) {
-      const els = render(p);
+      const els = renderOrP;
       const df = new DocumentFragment();
       if (Array.isArray(els)) {
         els.forEach((el) => df.append(el));
@@ -163,7 +199,7 @@ function renderComponentClientside<Props>(
       }
       parent.insertBefore(df, com);
     }
-  });
+  }
 
   return com;
 }

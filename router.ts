@@ -276,7 +276,7 @@ export class Router<Context, LoginToken> {
       async function (ctx, p, _b, auth, req, res) {
         return run(ctx, p, auth, req, res).then(function (r) {
           res.writeHead(200, {
-            "Content-Type": "text/html",
+            "Content-Type": "text/html; charset=utf-8",
             "Cache-Control": "no-cache",
           });
           res.write("<!DOCTYPE html>"); // if we know the headers in the router, we could send them immediately, even before the handler runs...
