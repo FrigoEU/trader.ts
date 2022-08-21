@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.1.8",
+  "version": "1.1.9",
   "files": [
     "**/*.ts",
     "**/*.tsx"
@@ -12,7 +12,7 @@
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
     "hyperscript": "frigoeu/hyperscript#71eacd784f028b691d1be704df34910881df4f2a",
-    "lodash": "^4.17.21",
+    "lodash-es": "^4.17.21",
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "^0.16.1"
   },
