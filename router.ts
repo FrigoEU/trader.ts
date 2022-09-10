@@ -277,7 +277,9 @@ export class Router<Context, LoginToken> {
         return run(ctx, p, auth, req, res).then(function (r) {
           res.writeHead(200, {
             "Content-Type": "text/html; charset=utf-8",
-            "Cache-Control": "no-cache",
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
           });
           res.write("<!DOCTYPE html>"); // if we know the headers in the router, we could send them immediately, even before the handler runs...
           res.end(r.innerHTML);

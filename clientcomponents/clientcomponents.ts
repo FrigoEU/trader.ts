@@ -14,14 +14,18 @@ type ClientComponents<T extends { [key: string]: any }> = {
 export type ClientComponentsExport<T extends ClientComponents<any>> = T;
 
 // Should be in CLIENTSIDE bundle
-export function registerClientComponents<T extends { [key: string]: any }>(
-  components:
-    | {
-        [K in keyof T]: ClientComponent<T[K]>;
-      }
-    | {
-        [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
-      }
+export function registerClientComponentsSync<T extends { [key: string]: any }>(
+  components: { [K in keyof T]: ClientComponent<T[K]> }
+): ClientComponents<T> {
+  (window as any).clientcomponents = components;
+  (window as any).instantiateComponent = instantiateComponent;
+  return components;
+}
+
+export function registerClientComponentsAsync<T extends { [key: string]: any }>(
+  components: {
+    [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
+  }
 ): ClientComponents<T> {
   (window as any).clientcomponents = components;
   (window as any).instantiateComponent = instantiateComponent;
