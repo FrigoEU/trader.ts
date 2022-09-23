@@ -96,10 +96,13 @@ ${
   // Inspiration: https://quipblog.com/efficiently-loading-inlined-json-data-911960b0ac0a
   const jsondata = h(
     "script",
-    /* Doesn't matter which type, just so browser doesn't parse it */
-    { type: "application/json" },
-    props
+    { type: "application/json" } // Doesn't matter which type, just so browser doesn't parse it
   );
+  // If we just pass props as a child to the "h" call, the props will get escaped,
+  // causing things like "&" to become "&amp;"
+  // -> We don't want that, so we use a small "hack" provided by the html-element library to set the innerHTML literally
+  jsondata.innerHTML = props;
+
   const scr = h(
     "script",
     {},
