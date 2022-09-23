@@ -100,7 +100,8 @@ ${
   );
   // If we just pass props as a child to the "h" call, the props will get escaped,
   // causing things like "&" to become "&amp;"
-  // -> We don't want that, so we use a small "hack" provided by the html-element library to set the innerHTML literally
+  // This is correct behavior when making any HTML node, EXCEPT when making a <script> tag
+  // We correct this using a small "hack" provided by the html-element library to set the innerHTML literally
   jsondata.innerHTML = props;
 
   const scr = h(
