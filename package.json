@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.1.15",
+  "version": "1.1.16",
   "files": [
     "**/*.ts",
     "**/*.tsx"
@@ -11,7 +11,7 @@
     "@js-joda/core": "^5.3.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
-    "hyperscript": "git+ssh://git@github.com/frigoeu/hyperscript#71eacd784f028b691d1be704df34910881df4f2a",
+    "hyperscript": "ssh://git@github.com/frigoeu/hyperscript#71eacd784f028b691d1be704df34910881df4f2a",
     "lodash-es": "^4.17.21",
     "postgres": "^2.0.0-beta.5",
     "openapi-types": "^7.2.3",
