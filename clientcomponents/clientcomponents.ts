@@ -3,7 +3,7 @@ import {
   findNonSerializable,
   runWithCustomSerializers,
 } from "./serialization";
-import h from "hyperscript";
+import h from "trader-hyperscript";
 
 type ClientComponent<Props> = (props: Props) => HTMLElement | HTMLElement[];
 type ClientComponents<T extends { [key: string]: any }> = {

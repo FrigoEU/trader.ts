@@ -1,4 +1,4 @@
-import h from "hyperscript";
+import h from "trader-hyperscript";
 import { groupBy, isEqual, toPairs } from "lodash-es";
 import { Source } from "./types/source";
 import { dyn, dynClass, scheduleForCleanup } from "./ui";

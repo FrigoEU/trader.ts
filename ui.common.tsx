@@ -1,4 +1,4 @@
-import h from "hyperscript";
+import h from "trader-hyperscript";
 import type { Remote } from "./types/remote";
 import { Source } from "./types/source";
 import { dyn, scheduleForCleanup } from "./ui";
