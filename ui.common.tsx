@@ -2,6 +2,7 @@ import h from "trader-hyperscript";
 import type { Remote } from "./types/remote";
 import { Source } from "./types/source";
 import { dyn, scheduleForCleanup } from "./ui";
+import * as joda from "@js-joda/core";
 
 export function errorMessage(
   errS: Source<string | null | undefined>,
@@ -369,4 +370,38 @@ export function multiSelectBox(opts: {
   );
 
   return wrapWithLabel(opts.label, opts.error, full);
+}
+
+function toDate(d: joda.LocalDate): Date {
+  return new Date(Date.parse(d.toString()));
+}
+function toLocalDate(d: Date): joda.LocalDate {
+  return joda.LocalDate.of(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+export function datebox(opts: {
+  source: Source<joda.LocalDate | null>;
+  error?: Source<string | null>;
+  class?: string;
+  label?: string;
+  placeholder?: string;
+}) {
+  const i = (
+    <input
+      type="date"
+      className={opts.class || ""}
+      placeholder={opts.placeholder || ""}
+    />
+  ) as HTMLInputElement;
+  const currentValue = opts.source.get();
+  i.valueAsDate = currentValue === null ? null : toDate(currentValue);
+  i.oninput = () =>
+    i.valueAsDate === null
+      ? opts.source.set(null)
+      : opts.source.set(toLocalDate(i.valueAsDate));
+  scheduleForCleanup(
+    opts.source.observe((v) => {
+      i.valueAsDate = v === null ? null : toDate(v);
+    })
+  );
+  return wrapWithLabel(opts.label, opts.error, i);
 }

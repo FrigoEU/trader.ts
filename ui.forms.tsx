@@ -1,8 +1,9 @@
 import h from "trader-hyperscript";
 import { Source } from "./types/source";
-import { dyn } from "./ui";
+import { dyn, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
 import { isNil } from "lodash";
+import * as joda from "@js-joda/core";
 
 export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   private readonly fieldCalculators: {
@@ -243,6 +244,104 @@ export function textBox(opts: {
       ...opts,
       source: rawS,
       label: opts.label,
+    });
+  }
+
+  return Promise.resolve({
+    s: parsedS,
+    cleanup,
+    render,
+  });
+}
+
+export function timeBox(opts: {
+  initialVal?: joda.LocalTime;
+  label?: string;
+  emptyLabel?: string;
+  style?: string;
+  class?: string;
+  id?: string;
+}): Promise<Field<joda.LocalTime>> {
+  const rawS = new Source(opts.initialVal?.toString() || "");
+
+  const parsedS: Source<Parsing<joda.LocalTime>> = new Source(
+    opts.initialVal
+      ? { tag: "parsed", parsed: opts.initialVal }
+      : {
+          tag: "initial",
+        }
+  );
+
+  function parse(raw: string): Parsing<joda.LocalTime> {
+    try {
+      const parsed = joda.LocalTime.parse(raw);
+      return { tag: "parsed", parsed };
+    } catch {
+      return {
+        tag: "err",
+        label: opts.emptyLabel === undefined ? "Mandatory" : opts.emptyLabel,
+      };
+    }
+  }
+
+  const cleanup = rawS.observe((raw) => {
+    parsedS.set(parse(raw));
+  });
+
+  function render() {
+    return standardinputs.textbox({
+      ...opts,
+      source: rawS,
+      type: "time",
+    });
+  }
+
+  return Promise.resolve({
+    s: parsedS,
+    cleanup,
+    render,
+  });
+}
+
+export function dateBox(opts: {
+  initialVal?: joda.LocalDate;
+  label?: string;
+  emptyLabel?: string;
+  style?: string;
+  class?: string;
+  id?: string;
+}): Promise<Field<joda.LocalDate>> {
+  const rawS = new Source(opts.initialVal ? opts.initialVal.toString() : "");
+
+  const parsedS: Source<Parsing<joda.LocalDate>> = new Source(
+    opts.initialVal
+      ? { tag: "parsed", parsed: opts.initialVal }
+      : {
+          tag: "initial",
+        }
+  );
+
+  function parse(raw: string): Parsing<joda.LocalDate> {
+    try {
+      const parsed = joda.LocalDate.parse(raw);
+      return { tag: "parsed", parsed };
+    } catch {
+      return {
+        tag: "err",
+        label: opts.emptyLabel === undefined ? "Mandatory" : opts.emptyLabel,
+      };
+    }
+  }
+
+  const cleanup = rawS.observe((raw) => {
+    parsedS.set(parse(raw));
+  });
+
+  function render() {
+    return standardinputs.textbox({
+      ...opts,
+      source: rawS,
+      type: "date",
     });
   }
 
