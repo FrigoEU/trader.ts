@@ -104,7 +104,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         curr.field.set(null);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
-          console.log(`Loaded field ${fieldName}`);
+          console.log(`Loaded field ${String(fieldName)}`);
           curr.field.set(field);
 
           // "Forward"ing source
