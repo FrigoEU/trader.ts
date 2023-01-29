@@ -97,7 +97,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       const res = runFieldCalcImplementation(fieldCalc);
       if (res === null) {
       } else {
-        console.log(`Loading field ${fieldName}`);
+        console.log(`Loading field ${String(fieldName)}`);
         const curr = currentStatusOfFieldsS[fieldName];
         curr.cleanups.forEach((f) => f());
         curr.cleanups.length = 0;
