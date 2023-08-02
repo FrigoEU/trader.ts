@@ -13,12 +13,14 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
     };
   };
 
-  constructor(fs: {
-    [fieldName in keyof ParsedScope]: {
-      dependsOn: (keyof ParsedScope)[];
-      calc: (deps: any /* temp */) => Promise<Field<any>>;
-    };
-  }) {
+  constructor(
+    fs: {
+      [fieldName in keyof ParsedScope]: {
+        dependsOn: (keyof ParsedScope)[];
+        calc: (deps: any /* temp */) => Promise<Field<any>>;
+      };
+    }
+  ) {
     this.fieldCalculators = fs;
   }
 
@@ -43,9 +45,11 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   }
 
   public build(opts?: {
-    render: (preRendered: {
-      [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
-    }) => HTMLElement | HTMLElement[];
+    render: (
+      preRendered: {
+        [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
+      }
+    ) => HTMLElement | HTMLElement[];
   }): Field<ParsedScope> {
     const cleanups: (() => void)[] = [];
     const self = this;
@@ -452,6 +456,7 @@ export function selectBox<T>(
   show: (t: T) => string,
   opts?: {
     label?: string;
+    saveAndLoadInitialValToLocalStorage?: string;
   }
 ): Promise<Field<T>>;
 export function selectBox<T, U>(
@@ -461,35 +466,44 @@ export function selectBox<T, U>(
   opts: {
     toIdentifier: (t: T) => U;
     label?: string;
+    saveAndLoadInitialValToLocalStorage?: string;
   }
 ): Promise<Field<U>>;
 export function selectBox<T, U>(
   options: T[],
-  initial: T | null | undefined,
+  initial_: T | null | undefined,
   show: (t: T) => string,
   opts?:
     | {
         toIdentifier: (t: T) => U;
         label?: string;
+        saveAndLoadInitialValToLocalStorage?: string;
       }
     | {
         label?: string;
+        saveAndLoadInitialValToLocalStorage?: string;
       }
 ): Promise<Field<T | U>> {
-  const rawS = new Source(initial ? show(initial) : "");
+  const lsKey = opts?.saveAndLoadInitialValToLocalStorage
+    ? "trader_forms_selectbox_" + opts.saveAndLoadInitialValToLocalStorage
+    : null;
+  const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
+  // We save the SHOWN value into LS, not the "identifier"
+  const initial = fromLs ? fromLs : initial_ ? show(initial_) : "";
+  const rawS: Source<string> = new Source(initial);
 
   function getIdentifier(t: T): T | U {
     return opts && "toIdentifier" in opts ? opts.toIdentifier(t) : t;
   }
+  const initialFound = options.find((opt) => show(opt) === initial);
+  const initialParsed = initialFound
+    ? {
+        tag: "parsed" as const,
+        parsed: getIdentifier(initialFound),
+      }
+    : { tag: "initial" as const };
 
-  const parsedS: Source<Parsing<T | U>> = new Source(
-    initial !== null && initial !== undefined
-      ? {
-          tag: "parsed",
-          parsed: getIdentifier(initial),
-        }
-      : { tag: "initial" }
-  );
+  const parsedS: Source<Parsing<T | U>> = new Source(initialParsed);
 
   function parse(
     raw: string
@@ -516,7 +530,7 @@ export function selectBox<T, U>(
         {initial === null || initial === undefined ? (
           <option value=""></option>
         ) : (
-          (null as unknown as HTMLOptionElement)
+          ((null as unknown) as HTMLOptionElement)
         )}
         {options.map((opt) => (
           <option value={show(opt)}>{show(opt)}</option>
@@ -524,11 +538,16 @@ export function selectBox<T, U>(
       </select>
     ) as HTMLInputElement;
 
-    if (!isNil(initial)) {
-      i.value = show(initial);
+    if (!isNil(initialFound)) {
+      i.value = show(initialFound);
     }
 
-    i.oninput = () => rawS.set(i.value);
+    i.oninput = () => {
+      rawS.set(i.value);
+      if (lsKey) {
+        localStorage.setItem(lsKey, i.value);
+      }
+    };
     return opts?.label ? (
       <label>
         <div className="label-text">{opts.label}</div>

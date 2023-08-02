@@ -1,7 +1,10 @@
 {
   "name": "trader.ts",
   "version": "1.2.7",
-  "files": ["**/*.ts", "**/*.tsx"],
+  "files": [
+    "**/*.ts",
+    "**/*.tsx"
+  ],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {
