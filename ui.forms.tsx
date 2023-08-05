@@ -225,6 +225,8 @@ export function textBox(opts: {
   initialVal?: string;
   type?: string;
   label?: string;
+  style?: string;
+  class?: string;
 }): Promise<Field<string>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
@@ -367,6 +369,8 @@ export function constantField<T>(val: T): Promise<Field<T>> {
 export function checkBox(opts: {
   initialVal: boolean;
   label: string;
+  style?: string;
+  class?: string;
 }): Promise<Field<boolean>> {
   const rawS = new Source(opts.initialVal);
 
@@ -456,6 +460,8 @@ export function selectBox<T>(
   show: (t: T) => string,
   opts?: {
     label?: string;
+    style?: string;
+    class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
   }
 ): Promise<Field<T>>;
@@ -466,6 +472,8 @@ export function selectBox<T, U>(
   opts: {
     toIdentifier: (t: T) => U;
     label?: string;
+    style?: string;
+    class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
   }
 ): Promise<Field<U>>;
@@ -477,10 +485,14 @@ export function selectBox<T, U>(
     | {
         toIdentifier: (t: T) => U;
         label?: string;
+        style?: string;
+        class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
       }
     | {
         label?: string;
+        style?: string;
+        class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
       }
 ): Promise<Field<T | U>> {
@@ -526,7 +538,11 @@ export function selectBox<T, U>(
 
   function render() {
     const i = (
-      <select value={rawS.get()}>
+      <select
+        value={rawS.get()}
+        style={opts?.style || ""}
+        className={opts?.class || ""}
+      >
         {initial === null || initial === undefined ? (
           <option value=""></option>
         ) : (
