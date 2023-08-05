@@ -9,6 +9,7 @@ export function findNonSerializable(obj: any): any | null {
       typeof val === "boolean" ||
       typeof val === "number" ||
       val instanceof Date ||
+      val instanceof joda.DayOfWeek ||
       val instanceof joda.LocalDate ||
       val instanceof joda.LocalTime ||
       val instanceof joda.LocalDateTime ||
