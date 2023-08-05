@@ -55,6 +55,7 @@ export function findNonSerializable(obj: any): any | null {
 
 export function runWithCustomSerializers<A>(f: () => A): A {
   const oldDatePrototype = Date.prototype.toJSON;
+  const oldDayOfWeekPrototype = joda.DayOfWeek.prototype.toJSON;
   const oldPlainDatePrototype = joda.LocalDate.prototype.toJSON;
   const oldPlainTimePrototype = joda.LocalTime.prototype.toJSON;
   const oldPlainDateTimePrototype = joda.LocalDateTime.prototype.toJSON;
@@ -64,6 +65,12 @@ export function runWithCustomSerializers<A>(f: () => A): A {
     return {
       __tag: "date",
       value: this.toISOString(),
+    } as any;
+  };
+  joda.DayOfWeek.prototype.toJSON = function () {
+    return {
+      __tag: "dayofweek",
+      value: this.ordinal(),
     } as any;
   };
   joda.LocalDate.prototype.toJSON = function () {
@@ -100,6 +107,7 @@ export function runWithCustomSerializers<A>(f: () => A): A {
   const res: any = f();
 
   Date.prototype.toJSON = oldDatePrototype;
+  joda.DayOfWeek.prototype.toJSON = oldDayOfWeekPrototype;
   joda.LocalDate.prototype.toJSON = oldPlainDatePrototype;
   joda.LocalTime.prototype.toJSON = oldPlainTimePrototype;
   joda.LocalDateTime.prototype.toJSON = oldPlainDateTimePrototype;
@@ -115,6 +123,9 @@ export function deserializeProps(p: string) {
     }
     if (x && x.__tag && x.__tag === "plaindate" && x.value) {
       return joda.LocalDate.parse(x.value);
+    }
+    if (x && x.__tag && x.__tag === "dayofweek" && x.value) {
+      return joda.DayOfWeek.of(x.value + 1);
     }
     if (x && x.__tag && x.__tag === "plaintime" && x.value) {
       return joda.LocalTime.parse(x.value);
