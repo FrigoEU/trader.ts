@@ -119,25 +119,25 @@ export function runWithCustomSerializers<A>(f: () => A): A {
 
 export function deserializeProps(p: string) {
   return JSON.parse(p, function (_: any, x: any) {
-    if (x && x.__tag && x.__tag === "date" && x.value) {
+    if (x && x.__tag && x.__tag === "date" && "value" in x) {
       return new Date(x.value);
     }
-    if (x && x.__tag && x.__tag === "plaindate" && x.value) {
+    if (x && x.__tag && x.__tag === "plaindate" && "value" in x) {
       return joda.LocalDate.parse(x.value);
     }
-    if (x && x.__tag && x.__tag === "dayofweek" && x.value) {
+    if (x && x.__tag && x.__tag === "dayofweek" && "value" in x) {
       return joda.DayOfWeek.of(x.value + 1);
     }
-    if (x && x.__tag && x.__tag === "plaintime" && x.value) {
+    if (x && x.__tag && x.__tag === "plaintime" && "value" in x) {
       return joda.LocalTime.parse(x.value);
     }
-    if (x && x.__tag && x.__tag === "plaindatetime" && x.value) {
+    if (x && x.__tag && x.__tag === "plaindatetime" && "value" in x) {
       return joda.LocalDateTime.parse(x.value);
     }
-    if (x && x.__tag && x.__tag === "instant" && x.value) {
+    if (x && x.__tag && x.__tag === "instant" && "value" in x) {
       return joda.Instant.ofEpochMilli(parseInt(x.value));
     }
-    if (x && x.type && x.type === "Buffer" && x.data) {
+    if (x && x.type && x.type === "Buffer" && "data" in x) {
       return new Uint8Array(x.data);
     }
     return x;
