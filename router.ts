@@ -188,6 +188,9 @@ export class Router<Context, LoginToken> {
           console.error(`Incoming url: ${req.url}`);
           console.error(`Headers: ${JSON.stringify(req.headers)}`);
           console.error(`Server error: ${err}`);
+          if ("detail" in err){
+            console.error(`Error detail: ${err.detail}`);
+          }
         });
     } else {
       cont(null as NeedsAuth extends true ? LoginToken : null);
