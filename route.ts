@@ -16,12 +16,15 @@ export interface Route<Params> {
 interface BuiltinTypeMapping {
   string: string;
   number: number;
+  "number|null": number | null;
   "number[]": number[];
   "number[]|null": number[] | null;
   boolean: boolean;
   date: joda.LocalDate;
   instant: joda.Instant;
 }
+
+type CompactIntersection<A, B> = A extends void ? B : A & B;
 
 type TypeMappingSafer<
   TypeMapping,
@@ -31,21 +34,43 @@ type TypeMappingSafer<
 type ExtractRouteParams<
   T extends string,
   ExtraMapping
-> = T extends `${infer _Start}{${infer Param}:${infer Typ}}/${infer Rest}`
-  ? ExtractRouteParams<Rest, ExtraMapping> extends void
-    ? {
+> = T extends `${infer URL}?${infer QueryParams}`
+  ? CompactIntersection<
+      ExtractRouteParams<URL, ExtraMapping>,
+      ExtractQueryParams<QueryParams, ExtraMapping>
+    >
+  : T extends `${infer _Start}{${infer Param}:${infer Typ}}/${infer Rest}`
+  ? CompactIntersection<
+      ExtractRouteParams<Rest, ExtraMapping>,
+      {
         [k in Param]: TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>;
       }
-    : {
-        [k in Param]: TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>;
-      } &
-        ExtractRouteParams<Rest, ExtraMapping>
+    >
   : T extends `${infer _Start}{${infer Param}:${infer Typ}}`
   ? { [k in Param]: TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ> }
-  : void; // If we'd make this {}, then we wouldn't need the above conditional, but then routes without parameters would always need a "{}" parameter to be passed to it
+  : void;
+
+type ExtractQueryParams<
+  T extends string,
+  ExtraMapping
+> = T extends `{${infer Param}:${infer Typ}}&${infer Rest}`
+  ? CompactIntersection<
+      ExtractQueryParams<Rest, ExtraMapping>,
+      {
+        [k in Param]:
+          | TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>
+          | undefined;
+      }
+    >
+  : T extends `{${infer Param}:${infer Typ}}`
+  ? {
+      [k in Param]:
+        | TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>
+        | undefined;
+    }
+  : void;
 
 const regex = /{[^}]+}|[^{}]*/g;
-// TODO replace with purify Codec?
 export type Encoder<T> = {
   parse: (s: string) => Either<Error, T>;
   serialize: (t: T) => string;
@@ -61,6 +86,23 @@ export const builtinEncoders: {
   number: {
     parse: parseNumber,
     serialize: (n) => n.toString(),
+    swaggerType: "number",
+  },
+  "number|null": {
+    parse: function (str): Either<Error, number | null> {
+      if (str.trim() === "-") {
+        return Right(null);
+      } else {
+        return parseNumber(str);
+      }
+    },
+    serialize: function (numOrNull) {
+      if (numOrNull === null) {
+        return "-";
+      } else {
+        return numOrNull.toString();
+      }
+    },
     swaggerType: "number",
   },
   string: {
@@ -251,8 +293,8 @@ function id<T>(a: T): T {
  *
  * @example
  * const myroute = makeRoute("/users/{id:number}");
- * const match = myroute.parse("/users/5"); // returns {id: 5}
- * const match2 = myroute.parse("/somethingelse"); // returns Error
+ * const match = myroute.parse("/users/5"); // returns Right({id: 5})
+ * const match2 = myroute.parse("/somethingelse"); // returns Left(Error)
  * const link = myroute.link({id: 7}); // return "/users/7"
  */
 export function makeRoute<T extends string, ExtraTypeMapping>(
@@ -264,33 +306,21 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
   if (!r.startsWith("/")) {
     throw new Error("Route must start with '/'");
   }
-  const parts = r.match(regex);
-  if (parts === null) {
+  const splitOnQuestionmark = r.split("?");
+  const urlParts = splitOnQuestionmark[0].match(regex);
+  if (urlParts === null) {
     throw new Error("Invalid path: " + r);
   } else {
-    const cleanedParts = parts
+    const cleanedParts = urlParts
       .filter(function (part) {
         return part.trim() !== "";
       })
       .map(function (part): Part<any> {
         if (part[0] === "{") {
-          const split = part.substring(1, part.length - 1).split(":");
-          if (split && split[0] && split[1]) {
-            const encoder =
-              builtinEncoders[split[1] as keyof BuiltinTypeMapping] ||
-              (extraEncoders &&
-                extraEncoders[split[1] as keyof ExtraTypeMapping]);
-            if (encoder === null) {
-              throw new Error("No encoder found for type: " + split[1]);
-            }
-            return {
-              tag: "capture",
-              key: split[0],
-              encoder: encoder,
-            };
-          } else {
-            throw new Error("Invalid capture syntax: " + part);
-          }
+          return parseKeyColonEncoder(
+            part.substring(1, part.length - 1),
+            extraEncoders || null
+          );
         } else {
           return {
             tag: "constant",
@@ -298,50 +328,104 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
           };
         }
       });
+    const optionalParts = splitOnQuestionmark[1]
+      ? splitOnQuestionmark[1].split("&").map((part) => {
+          if (part[0] === "{") {
+            return parseKeyColonEncoder(
+              part.substring(1, part.length - 1),
+              extraEncoders || null
+            );
+          } else {
+            throw new Error(`Wrong syntax is query params: ${part}`);
+          }
+        })
+      : [];
+
+    function parseQueryParams(str: string): Either<Error, Record<string, any>> {
+      const acc = {} as Record<string, any>;
+      const parts = str.split("&");
+      for (let op of optionalParts) {
+        const matching = parts.find((p) => p.startsWith(op.key));
+        if (!matching) {
+          acc[op.key] = undefined;
+        } else {
+          const parsed = op.encoder.parse(
+            decodeURIComponent(matching.substring(op.key.length + 1))
+          );
+          if (parsed.isLeft()) {
+            const err = parsed.extract();
+            err.message =
+              `Failed to parse query params value for key ${op.key}: ` +
+              err.message;
+            return Left(err);
+          } else {
+            acc[op.key] = parsed.extract();
+          }
+        }
+      }
+      return Right(acc);
+    }
+    function parseUrl(str: string): Either<Error, Record<string, any>> {
+      const acc = {} as Record<string, any>;
+      let rest = str;
+      for (let p of cleanedParts) {
+        if (p.tag === "constant") {
+          if (rest.substring(0, p.constant.length) === p.constant) {
+            rest = rest.substring(p.constant.length);
+          } else {
+            return Left(
+              new Error(
+                `Tried to match constant "${p.constant}" but failed. Remaining url: ${rest}`
+              )
+            );
+          }
+        } else if (p.tag === "capture") {
+          const captured = rest.split("/")[0];
+          const parsed = p.encoder.parse(decodeURIComponent(captured));
+          if (parsed.isLeft()) {
+            const err = parsed.extract();
+            err.message = err.message + ". Remaining url: " + rest;
+            return Left(err);
+          } else {
+            (acc as any)[p.key] = parsed.extract();
+            rest = rest.substring(captured.length);
+          }
+        } else {
+          checkAllCasesHandled(p);
+        }
+      }
+      if (
+        rest.trim() === "" ||
+        rest.trim().startsWith("?") /* allow query params after url */
+      ) {
+        return Right(acc);
+      } else {
+        return Left(
+          new Error(`Tried to match url, but have remaining string: ${rest}`)
+        );
+      }
+    }
+
     return {
       parts: cleanedParts,
       __rawUrl: r,
       parse: function (str_: string) {
-        const str =
-          str_.indexOf("?") >= 0 ? str_.slice(0, str_.indexOf("?")) : str_; // Strip query string, this library does not use them
-        const acc = {} as ExtractRouteParams<T, ExtraTypeMapping>;
-        let rest = str;
-        for (let p of cleanedParts) {
-          if (p.tag === "constant") {
-            if (rest.substring(0, p.constant.length) === p.constant) {
-              rest = rest.substring(p.constant.length);
+        const split = str_.split("?");
+        const url = parseUrl(split[0]);
+        return url.caseOf({
+          Left: (e) => Left(e),
+          Right: (routeparams) => {
+            const qps = parseQueryParams(split[1] || "");
+            if (qps.isLeft()) {
+              return qps;
             } else {
-              return Left(
-                new Error(
-                  `Tried to match constant "${p.constant}" but failed. Remaining url: ${rest}`
-                )
-              );
+              return Right({
+                ...routeparams,
+                ...qps.extract(),
+              } as ExtractRouteParams<T, ExtraTypeMapping>);
             }
-          } else if (p.tag === "capture") {
-            const captured = rest.split("/")[0];
-            const parsed = p.encoder.parse(decodeURIComponent(captured));
-            if (parsed.isLeft()) {
-              const err = parsed.extract();
-              err.message = err.message + ". Remaining url: " + rest;
-              return Left(err);
-            } else {
-              (acc as any)[p.key] = parsed.extract();
-              rest = rest.substring(captured.length);
-            }
-          } else {
-            checkAllCasesHandled(p);
-          }
-        }
-        if (
-          rest.trim() === "" ||
-          rest.trim().startsWith("?") /* allow query params after url */
-        ) {
-          return Right(acc);
-        } else {
-          return Left(
-            new Error(`Tried to match url, but have remaining string: ${rest}`)
-          );
-        }
+          },
+        });
       },
       link: function (params) {
         let acc: string = "";
@@ -349,12 +433,25 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
           if (p.tag === "constant") {
             acc = acc + p.constant;
           } else if (p.tag === "capture") {
-            acc =
-              acc +
-              encodeURIComponent(p.encoder.serialize((params as any)[p.key]));
+            acc += encodeURIComponent(
+              p.encoder.serialize((params as any)[p.key])
+            );
           } else {
             checkAllCasesHandled(p);
           }
+        }
+        let queryParamsAcc = "";
+        for (let op of optionalParts) {
+          if ((params as any)[op.key] !== undefined) {
+            queryParamsAcc +=
+              op.key +
+              "=" +
+              encodeURIComponent(op.encoder.serialize((params as any)[op.key]));
+          }
+        }
+        if (queryParamsAcc !== "") {
+          acc += "?";
+          acc += queryParamsAcc;
         }
         return acc;
       },
@@ -362,6 +459,36 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
         return "#" + this.link(params);
       },
     };
+  }
+}
+
+function parseKeyColonEncoder<ExtraTypeMapping>(
+  s: string,
+  extraEncoders:
+    | {
+        [k in keyof ExtraTypeMapping]: Encoder<ExtraTypeMapping[k]>;
+      }
+    | null
+): {
+  tag: "capture";
+  key: string;
+  encoder: Encoder<any>;
+} {
+  const split = s.split(":");
+  if (split && split[0] && split[1]) {
+    const encoder =
+      builtinEncoders[split[1] as keyof BuiltinTypeMapping] ||
+      (extraEncoders && extraEncoders[split[1] as keyof ExtraTypeMapping]);
+    if (encoder === null) {
+      throw new Error("No encoder found for type: " + split[1]);
+    }
+    return {
+      tag: "capture",
+      key: split[0],
+      encoder: encoder,
+    };
+  } else {
+    throw new Error("Invalid capture syntax: " + s);
   }
 }
 
