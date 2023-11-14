@@ -267,6 +267,7 @@ export function timeBox(opts: {
   style?: string;
   class?: string;
   id?: string;
+  previewS: Source<joda.LocalTime>;
 }): Promise<Field<joda.LocalTime>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
@@ -295,6 +296,14 @@ export function timeBox(opts: {
   });
 
   function render() {
+    if (opts.previewS) {
+      scheduleForCleanup(
+        parsedS.observe((s) =>
+          s.tag === "parsed" ? opts.previewS.set(s.parsed) : {}
+        )
+      );
+    }
+
     return standardinputs.textbox({
       ...opts,
       source: rawS,
@@ -463,6 +472,7 @@ export function selectBox<T>(
     style?: string;
     class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
+    previewS?: Source<T>;
   }
 ): Promise<Field<T>>;
 export function selectBox<T, U>(
@@ -475,6 +485,7 @@ export function selectBox<T, U>(
     style?: string;
     class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
+    previewS?: Source<U>;
   }
 ): Promise<Field<U>>;
 export function selectBox<T, U>(
@@ -488,12 +499,14 @@ export function selectBox<T, U>(
         style?: string;
         class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
+        previewS?: Source<U>;
       }
     | {
         label?: string;
         style?: string;
         class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
+        previewS?: Source<T>;
       }
 ): Promise<Field<T | U>> {
   const lsKey = opts?.saveAndLoadInitialValToLocalStorage
@@ -537,6 +550,20 @@ export function selectBox<T, U>(
   });
 
   function render() {
+    if (opts?.previewS) {
+      scheduleForCleanup(
+        parsedS.observe((s) => {
+          if (s.tag === "parsed") {
+            if ("toIdentifier" in opts) {
+              opts!.previewS!.set(s.parsed as U);
+            } else {
+              opts!.previewS!.set(s.parsed as T);
+            }
+          }
+        })
+      );
+    }
+
     const i = (
       <select
         value={rawS.get()}
