@@ -267,7 +267,7 @@ export function timeBox(opts: {
   style?: string;
   class?: string;
   id?: string;
-  previewS: Source<joda.LocalTime>;
+  previewS?: Source<joda.LocalTime>;
 }): Promise<Field<joda.LocalTime>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
@@ -299,7 +299,7 @@ export function timeBox(opts: {
     if (opts.previewS) {
       scheduleForCleanup(
         parsedS.observe((s) =>
-          s.tag === "parsed" ? opts.previewS.set(s.parsed) : {}
+          s.tag === "parsed" ? opts.previewS!.set(s.parsed) : {}
         )
       );
     }
