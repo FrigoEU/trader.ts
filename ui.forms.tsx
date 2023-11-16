@@ -214,7 +214,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
               }
             });
           }
-          return <div>{customRenderFunc(renderedFields)}</div>;
+          return customRenderFunc(renderedFields);
         }
       },
     };
@@ -676,7 +676,7 @@ type getParsedFromField<F> = F extends Field<infer Parsed> ? Parsed : never;
 
 export interface Field<Parsed> {
   s: Source<Parsing<Parsed>>;
-  render: () => HTMLElement;
+  render: () => HTMLElement | HTMLElement[];
   cleanup: () => void;
 }
 
