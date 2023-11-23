@@ -440,15 +440,19 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
             checkAllCasesHandled(p);
           }
         }
-        let queryParamsAcc = "";
-        for (let op of optionalParts) {
-          if ((params as any)[op.key] !== undefined) {
-            queryParamsAcc +=
-              op.key +
-              "=" +
-              encodeURIComponent(op.encoder.serialize((params as any)[op.key]));
-          }
-        }
+        let queryParamsAcc = optionalParts
+          .map((op) => {
+            if ((params as any)[op.key] !== undefined) {
+              return (
+                op.key +
+                "=" +
+                encodeURIComponent(
+                  op.encoder.serialize((params as any)[op.key])
+                )
+              );
+            }
+          })
+          .join("&");
         if (queryParamsAcc !== "") {
           acc += "?";
           acc += queryParamsAcc;
