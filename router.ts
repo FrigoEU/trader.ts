@@ -188,7 +188,7 @@ export class Router<Context, LoginToken> {
           console.error(`Incoming url: ${req.url}`);
           console.error(`Headers: ${JSON.stringify(req.headers)}`);
           console.error(`Server error: ${err}`);
-          if ("detail" in err){
+          if ("detail" in err) {
             console.error(`Error detail: ${err.detail}`);
           }
         });
@@ -214,26 +214,7 @@ export class Router<Context, LoginToken> {
         data += chunk;
       });
       req.on("end", () => {
-        let parsed: any;
-        try {
-          parsed = JSON.parse(data);
-        } catch (error) {
-          const errorMessage =
-            error instanceof Error
-              ? error.message
-              : typeof error === "string"
-              ? error
-              : (error as any).toString();
-          res.writeHead(400, { "Content-Type": "text/plain" });
-          res.write("Error while parsing body. Invalid Json!: " + errorMessage);
-          res.end();
-          console.error("Encountered error during body parsing.");
-          console.error(`Incoming url: ${req.url}`);
-          console.error(`Incoming body: ${data}`);
-          console.error(`Error: ${errorMessage}`);
-          return;
-        }
-        const decodeResult = codec.decode(data ? parsed : null);
+        const decodeResult = codec.decode(data);
         decodeResult.caseOf({
           Left: (error: string) => {
             res.writeHead(400, { "Content-Type": "text/plain" });
@@ -241,7 +222,7 @@ export class Router<Context, LoginToken> {
             res.end();
             console.error("Encountered error during body decoding.");
             console.error(`Incoming url: ${req.url}`);
-            console.error(`Incoming parsed body: ${JSON.stringify(parsed)}`);
+            console.error(`Incoming body: ${data}`);
             console.error(`Error: ${error}`);
           },
           Right: (decodedBody: Body) => {

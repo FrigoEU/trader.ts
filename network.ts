@@ -14,7 +14,7 @@ export function rpc<Parameters, Body, Returns>(
   const url = spec.route.link(params);
   const fetchP = fetch(url, {
     method: spec.method,
-    body: spec.body === null ? undefined : JSON.stringify(spec.body.encode(b)),
+    body: spec.body === null ? undefined : spec.body.encode(b),
     credentials: "include",
   }).then(
     (res): Promise<Returns> => {

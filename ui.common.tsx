@@ -111,26 +111,24 @@ export function textbox(opts: {
   placeholder?: string;
   id?: string;
 }) {
-  const i = (
-    opts.type === "textarea" ? (
-      <textarea
-        className={opts.class || ""}
-        style={opts.style || ""}
-        value={opts.source.get()}
-        placeholder={opts.placeholder || ""}
-        id={opts.id || ""}
-      />
-    ) : (
-      <input
-        type={opts.type || "text"}
-        style={opts.style || ""}
-        className={opts.class || ""}
-        value={opts.source.get()}
-        placeholder={opts.placeholder || ""}
-        id={opts.id || ""}
-      />
-    )
-  ) as HTMLInputElement;
+  const i = (opts.type === "textarea" ? (
+    <textarea
+      className={opts.class || ""}
+      style={opts.style || ""}
+      value={opts.source.get()}
+      placeholder={opts.placeholder || ""}
+      id={opts.id || ""}
+    />
+  ) : (
+    <input
+      type={opts.type || "text"}
+      style={opts.style || ""}
+      className={opts.class || ""}
+      value={opts.source.get()}
+      placeholder={opts.placeholder || ""}
+      id={opts.id || ""}
+    />
+  )) as HTMLInputElement;
   i.oninput = () => opts.source.set(i.value);
   scheduleForCleanup(
     opts.source.observe((v) => {
@@ -148,12 +146,14 @@ export function wrapWithLabel(
   return (
     <label>
       {l === undefined ? (
-        (null as unknown as HTMLElement)
+        ((null as unknown) as HTMLElement)
       ) : (
         <div className="label-text">{l}</div>
       )}
       {i}
-      {err === undefined ? (null as unknown as HTMLElement) : errorMessage(err)}
+      {err === undefined
+        ? ((null as unknown) as HTMLElement)
+        : errorMessage(err)}
     </label>
   );
 }
