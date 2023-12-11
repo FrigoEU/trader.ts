@@ -2,7 +2,7 @@ import h from "trader-hyperscript";
 import { Source } from "./types/source";
 import { dyn, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
-import { isNil } from "lodash";
+import { isNil, isEqual } from "lodash";
 import * as joda from "@js-joda/core";
 
 export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
@@ -98,14 +98,18 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
     // Attempt to run the fieldCalc with its deps, from the currentStatusOfFieldsS collection
     function runFieldCalc(fieldName: keyof ParsedScope) {
       const fieldCalc = self.fieldCalculators[fieldName];
+
+      const curr = currentStatusOfFieldsS[fieldName];
+      curr.cleanups.forEach((f) => f());
+      curr.cleanups.length = 0;
+      curr.field.set(null);
+
       const res = runFieldCalcImplementation(fieldCalc);
       if (res === null) {
+        console.log(`Field ${String(fieldName)} not initialized`);
+        curr.source.set({ tag: "initial" });
       } else {
         console.log(`Loading field ${String(fieldName)}`);
-        const curr = currentStatusOfFieldsS[fieldName];
-        curr.cleanups.forEach((f) => f());
-        curr.cleanups.length = 0;
-        curr.field.set(null);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
           console.log(`Loaded field ${String(fieldName)}`);
@@ -514,7 +518,11 @@ export function selectBox<T, U>(
     : null;
   const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
   // We save the SHOWN value into LS, not the "identifier"
-  const initial = fromLs ? fromLs : initial_ ? show(initial_) : "";
+  const initial = !isNil(fromLs)
+    ? fromLs
+    : !isNil(initial_)
+    ? show(initial_)
+    : "";
   const rawS: Source<string> = new Source(initial);
 
   function getIdentifier(t: T): T | U {
@@ -535,7 +543,7 @@ export function selectBox<T, U>(
   ): { tag: "parsed"; parsed: T | U } | { tag: "err" } {
     try {
       const parsed = options.find((opt) => show(opt) === raw);
-      if (parsed) {
+      if (parsed !== undefined) {
         return { tag: "parsed", parsed: getIdentifier(parsed) };
       } else {
         return { tag: "err" };
@@ -682,4 +690,40 @@ export interface Field<Parsed> {
 
 export function object_keys<T extends object>(obj: T): Array<keyof T> {
   return Object.keys(obj) as Array<keyof T>;
+}
+
+export function syncRawAndParsing<Raw, Parsed>(opts: {
+  rawS: Source<Raw>;
+  parsingS: Source<Parsing<Parsed>>;
+  parse: (raw: Raw) => undefined | Parsed;
+  parsedToRaw: (parsed: Parsed) => Raw;
+}) {
+  scheduleForCleanup(
+    opts.rawS.observe((raw) => {
+      const parsed = opts.parse(raw);
+      if (parsed !== undefined) {
+        const newParsing = { tag: "parsed" as const, parsed };
+        const currentParsing = opts.parsingS.get();
+        if (!isEqual(newParsing, currentParsing)) {
+          opts.parsingS.set(newParsing);
+        } else {
+          opts.parsingS.set({ tag: "err" });
+        }
+      } else {
+        opts.parsingS.set({ tag: "err" });
+      }
+    })
+  );
+
+  scheduleForCleanup(
+    opts.parsingS.observe((parsing) => {
+      if (parsing.tag === "parsed") {
+        const currentRaw = opts.rawS.get();
+        const newRaw = opts.parsedToRaw(parsing.parsed);
+        if (!isEqual(currentRaw, newRaw)) {
+          opts.rawS.set(newRaw);
+        }
+      }
+    })
+  );
 }
