@@ -167,7 +167,6 @@ export function checkbox(opts: {
   const i = (
     <input
       type="checkbox"
-      className={opts.class || ""}
       checked={opts.source.get() === true ? "checked" : null}
       disabled={opts.disabled || false}
       onchange={(e: InputEvent) =>
@@ -181,7 +180,7 @@ export function checkbox(opts: {
     })
   );
   return (
-    <label className="checkbox">
+    <label className={opts.class || ""}>
       {i}
       {opts.label || ""}
     </label>
