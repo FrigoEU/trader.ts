@@ -226,6 +226,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 }
 
 export function textBox(opts: {
+  mandatory?: boolean;
   initialVal?: string;
   type?: string;
   label?: string;
@@ -234,15 +235,24 @@ export function textBox(opts: {
 }): Promise<Field<string>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
-  const parsedS: Source<Parsing<string>> = new Source({
-    tag: "parsed",
-    parsed: opts.initialVal || "",
-  });
+  const initialVal = opts.initialVal || "";
+  const parsedS: Source<Parsing<string>> = new Source(
+    opts.mandatory === true && initialVal.trim() === ""
+      ? { tag: "initial" }
+      : {
+          tag: "parsed",
+          parsed: initialVal,
+        }
+  );
 
   function parse(
     raw: string
   ): { tag: "parsed"; parsed: string } | { tag: "err" } {
-    return { tag: "parsed", parsed: raw };
+    if (opts.mandatory === true && raw.trim() === "") {
+      return { tag: "err" };
+    } else {
+      return { tag: "parsed", parsed: raw };
+    }
   }
 
   const cleanup = rawS.observe((raw) => {
