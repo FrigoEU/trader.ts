@@ -2,6 +2,7 @@ import * as joda from "@js-joda/core";
 import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
 import { Either, Left, Right } from "purify-ts";
+import { mapPartial } from "./utils";
 
 // TODO: maybe keeping these errors is a waste on production?
 
@@ -441,19 +442,17 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
             checkAllCasesHandled(p);
           }
         }
-        let queryParamsAcc = optionalParts
-          .map((op) => {
-            if ((params as any)[op.key] !== undefined) {
-              return (
-                op.key +
-                "=" +
-                encodeURIComponent(
-                  op.encoder.serialize((params as any)[op.key])
-                )
-              );
-            }
-          })
-          .join("&");
+        let queryParamsAcc = mapPartial(optionalParts, (op) => {
+          if ((params as any)[op.key] !== undefined) {
+            return (
+              op.key +
+              "=" +
+              encodeURIComponent(op.encoder.serialize((params as any)[op.key]))
+            );
+          } else {
+            return null;
+          }
+        }).join("&");
         if (queryParamsAcc !== "") {
           acc += "?";
           acc += queryParamsAcc;
