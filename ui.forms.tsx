@@ -526,8 +526,8 @@ export function selectBox<T, U>(
     ? fromLs
     : !isNil(initial_)
     ? show(initial_)
-    : "";
-  const rawS: Source<string> = new Source(initial);
+    : null;
+  const rawS: Source<string> = new Source(initial || "");
 
   function getIdentifier(t: T): T | U {
     return opts && "toIdentifier" in opts ? opts.toIdentifier(t) : t;
