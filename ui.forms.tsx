@@ -477,6 +477,7 @@ export function selectBox<T>(
     class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
     previewS?: Source<T>;
+    isDisabled?: (t: T) => boolean;
   }
 ): Promise<Field<T>>;
 export function selectBox<T, U>(
@@ -490,6 +491,7 @@ export function selectBox<T, U>(
     class?: string;
     saveAndLoadInitialValToLocalStorage?: string;
     previewS?: Source<U>;
+    isDisabled?: (t: T) => boolean;
   }
 ): Promise<Field<U>>;
 export function selectBox<T, U>(
@@ -504,6 +506,7 @@ export function selectBox<T, U>(
         class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
         previewS?: Source<U>;
+        isDisabled?: (t: T) => boolean;
       }
     | {
         label?: string;
@@ -511,6 +514,7 @@ export function selectBox<T, U>(
         class?: string;
         saveAndLoadInitialValToLocalStorage?: string;
         previewS?: Source<T>;
+        isDisabled?: (t: T) => boolean;
       }
 ): Promise<Field<T | U>> {
   const lsKey = opts?.saveAndLoadInitialValToLocalStorage
@@ -529,12 +533,16 @@ export function selectBox<T, U>(
     return opts && "toIdentifier" in opts ? opts.toIdentifier(t) : t;
   }
   const initialFound = options.find((opt) => show(opt) === initial);
-  const initialParsed = initialFound
-    ? {
-        tag: "parsed" as const,
-        parsed: getIdentifier(initialFound),
-      }
-    : { tag: "initial" as const };
+  const initialParsed =
+    initialFound &&
+    (isNil(opts) ||
+      isNil(opts.isDisabled) ||
+      opts.isDisabled(initialFound) === false)
+      ? {
+          tag: "parsed" as const,
+          parsed: getIdentifier(initialFound),
+        }
+      : { tag: "initial" as const };
 
   const parsedS: Source<Parsing<T | U>> = new Source(initialParsed);
 
@@ -584,7 +592,18 @@ export function selectBox<T, U>(
           ((null as unknown) as HTMLOptionElement)
         )}
         {options.map((opt) => (
-          <option value={show(opt)}>{show(opt)}</option>
+          <option
+            disabled={
+              isNil(opts) ||
+              isNil(opts.isDisabled) ||
+              opts.isDisabled(opt) === false
+                ? false
+                : true
+            }
+            value={show(opt)}
+          >
+            {show(opt)}
+          </option>
         ))}
       </select>
     ) as HTMLInputElement;
