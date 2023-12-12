@@ -201,7 +201,7 @@ function parseBoolean(s: string): Either<Error, boolean> {
 function serializeBoolean(b: boolean): string {
   return b ? "true" : "false";
 }
-const dateFormat = joda.DateTimeFormatter.ofPattern("ddMMyyyy");
+const dateFormat = joda.DateTimeFormatter.ofPattern("yyyy-MM-dd");
 function parseDate(s: string): Either<Error, joda.LocalDate> {
   try {
     return Right(joda.LocalDate.parse(s, dateFormat));
