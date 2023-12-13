@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.2.29",
+  "version": "1.2.31",
   "files": [
     "**/*.ts",
     "**/*.tsx"

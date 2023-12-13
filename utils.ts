@@ -10,14 +10,19 @@ export function tryExtractErrorMessage(err: any): string {
     : err.toString();
 }
 
-export function mapPartial<A, B>(list: A[], f: (a: A) => null | B): B[] {
+export function mapPartial<A, B>(
+  list: A[],
+  f: (a: A, i: number) => null | B
+): B[] {
   const res = [];
+  let i = 0;
   for (let a of list) {
-    const mapped = f(a);
+    const mapped = f(a, i);
     if (mapped === null) {
     } else {
       res.push(mapped);
     }
+    i++;
   }
   return res;
 }
