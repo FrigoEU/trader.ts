@@ -4,6 +4,7 @@ import { dyn, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
 import { isNil, isEqual } from "lodash";
 import * as joda from "@js-joda/core";
+import { mapPartial } from "./utils";
 
 export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   private readonly fieldCalculators: {
@@ -479,7 +480,7 @@ export function numberBox(
 
 export function selectBox<T>(
   options: T[],
-  initial: T | null | undefined,
+  initial_: T | null | undefined,
   show: (t: T) => string,
   opts?: {
     label?: string;
@@ -488,45 +489,12 @@ export function selectBox<T>(
     saveAndLoadInitialValToLocalStorage?: string;
     previewS?: Source<T>;
     isDisabled?: (t: T) => boolean;
+    groups?: {
+      groupnames: string[];
+      assignToGroup: (t: T) => string;
+    };
   }
-): Promise<Field<T>>;
-export function selectBox<T, U>(
-  options: T[],
-  initial: T | null | undefined,
-  show: (t: T) => string,
-  opts: {
-    toIdentifier: (t: T) => U;
-    label?: string;
-    style?: string;
-    class?: string;
-    saveAndLoadInitialValToLocalStorage?: string;
-    previewS?: Source<U>;
-    isDisabled?: (t: T) => boolean;
-  }
-): Promise<Field<U>>;
-export function selectBox<T, U>(
-  options: T[],
-  initial_: T | null | undefined,
-  show: (t: T) => string,
-  opts?:
-    | {
-        toIdentifier: (t: T) => U;
-        label?: string;
-        style?: string;
-        class?: string;
-        saveAndLoadInitialValToLocalStorage?: string;
-        previewS?: Source<U>;
-        isDisabled?: (t: T) => boolean;
-      }
-    | {
-        label?: string;
-        style?: string;
-        class?: string;
-        saveAndLoadInitialValToLocalStorage?: string;
-        previewS?: Source<T>;
-        isDisabled?: (t: T) => boolean;
-      }
-): Promise<Field<T | U>> {
+): Promise<Field<T>> {
   const lsKey = opts?.saveAndLoadInitialValToLocalStorage
     ? "trader_forms_selectbox_" + opts.saveAndLoadInitialValToLocalStorage
     : null;
@@ -539,9 +507,6 @@ export function selectBox<T, U>(
     : null;
   const rawS: Source<string> = new Source(initial || "");
 
-  function getIdentifier(t: T): T | U {
-    return opts && "toIdentifier" in opts ? opts.toIdentifier(t) : t;
-  }
   const initialFound = options.find((opt) => show(opt) === initial);
   const initialParsed =
     initialFound &&
@@ -550,19 +515,17 @@ export function selectBox<T, U>(
       opts.isDisabled(initialFound) === false)
       ? {
           tag: "parsed" as const,
-          parsed: getIdentifier(initialFound),
+          parsed: initialFound,
         }
       : { tag: "initial" as const };
 
-  const parsedS: Source<Parsing<T | U>> = new Source(initialParsed);
+  const parsedS: Source<Parsing<T>> = new Source(initialParsed);
 
-  function parse(
-    raw: string
-  ): { tag: "parsed"; parsed: T | U } | { tag: "err" } {
+  function parse(raw: string): { tag: "parsed"; parsed: T } | { tag: "err" } {
     try {
       const parsed = options.find((opt) => show(opt) === raw);
       if (parsed !== undefined) {
-        return { tag: "parsed", parsed: getIdentifier(parsed) };
+        return { tag: "parsed", parsed: parsed };
       } else {
         return { tag: "err" };
       }
@@ -580,13 +543,26 @@ export function selectBox<T, U>(
       scheduleForCleanup(
         parsedS.observe((s) => {
           if (s.tag === "parsed") {
-            if ("toIdentifier" in opts) {
-              opts!.previewS!.set(s.parsed as U);
-            } else {
-              opts!.previewS!.set(s.parsed as T);
-            }
+            opts!.previewS!.set(s.parsed as T);
           }
         })
+      );
+    }
+
+    function renderOpt(opt: T) {
+      return (
+        <option
+          disabled={
+            isNil(opts) ||
+            isNil(opts.isDisabled) ||
+            opts.isDisabled(opt) === false
+              ? false
+              : true
+          }
+          value={show(opt)}
+        >
+          {show(opt)}
+        </option>
       );
     }
 
@@ -601,20 +577,26 @@ export function selectBox<T, U>(
         ) : (
           ((null as unknown) as HTMLOptionElement)
         )}
-        {options.map((opt) => (
-          <option
-            disabled={
-              isNil(opts) ||
-              isNil(opts.isDisabled) ||
-              opts.isDisabled(opt) === false
-                ? false
-                : true
-            }
-            value={show(opt)}
-          >
-            {show(opt)}
-          </option>
-        ))}
+        {opts && opts.groups
+          ? mapPartial(opts.groups.groupnames, (groupname) => {
+              const optionsForGroup = options.filter(
+                (opt) => opts.groups!.assignToGroup(opt) === groupname
+              );
+              if (optionsForGroup.length === 0) {
+                return null;
+              } else {
+                if (groupname === "") {
+                  return optionsForGroup.map(renderOpt);
+                } else {
+                  return (
+                    <optgroup label={groupname}>
+                      {optionsForGroup.map(renderOpt)}
+                    </optgroup>
+                  );
+                }
+              }
+            })
+          : options.map(renderOpt)}
       </select>
     ) as HTMLInputElement;
 
