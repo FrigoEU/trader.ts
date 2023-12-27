@@ -336,14 +336,14 @@ export function timeBox(opts: {
 export function dateBox(opts: {
   initialVal?: joda.LocalDate;
   label?: string;
-  emptyLabel?: string;
   style?: string;
   class?: string;
   id?: string;
+  onChange?: (d: joda.LocalDate) => void;
 }): Promise<Field<joda.LocalDate>> {
   const rawS = new Source(opts.initialVal ? opts.initialVal.toString() : "");
 
-  const parsedS: Source<Parsing<joda.LocalDate>> = new Source(
+  const parsingS: Source<Parsing<joda.LocalDate>> = new Source(
     opts.initialVal
       ? { tag: "parsed", parsed: opts.initialVal }
       : {
@@ -351,23 +351,29 @@ export function dateBox(opts: {
         }
   );
 
-  function parse(raw: string): Parsing<joda.LocalDate> {
+  function parse(raw: string): joda.LocalDate | undefined {
     try {
       const parsed = joda.LocalDate.parse(raw);
-      return { tag: "parsed", parsed };
+      return parsed;
     } catch {
-      return {
-        tag: "err",
-        label: opts.emptyLabel === undefined ? "Mandatory" : opts.emptyLabel,
-      };
+      return undefined;
     }
   }
 
-  const cleanup = rawS.observe((raw) => {
-    parsedS.set(parse(raw));
-  });
-
   function render() {
+    if (opts.onChange) {
+      parsingS.observe((s) =>
+        s.tag === "parsed" ? opts.onChange!(s.parsed) : {}
+      );
+    }
+    syncRawAndParsing({
+      rawS,
+      parsingS,
+      parse,
+      parsedToRaw: (r) => {
+        return r.toString();
+      },
+    });
     return standardinputs.textbox({
       ...opts,
       source: rawS,
@@ -376,8 +382,8 @@ export function dateBox(opts: {
   }
 
   return Promise.resolve({
-    s: parsedS,
-    cleanup,
+    s: parsingS,
+    cleanup: () => {},
     render,
   });
 }
