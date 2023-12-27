@@ -723,8 +723,6 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
         const currentParsing = opts.parsingS.get();
         if (!isEqual(newParsing, currentParsing)) {
           opts.parsingS.set(newParsing);
-        } else {
-          opts.parsingS.set({ tag: "err" });
         }
       } else {
         opts.parsingS.set({ tag: "err" });
