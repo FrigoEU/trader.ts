@@ -188,6 +188,24 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       s: mainSource,
       cleanup,
       render: function () {
+        scheduleForCleanup(
+          mainSource.observe((parsing) => {
+            if (parsing.tag === "parsed") {
+              const currentFullValueFromFields = recalcMainSourceImplementation();
+              if (isEqual(parsing, currentFullValueFromFields)) {
+                // do nothing
+              } else {
+                // Source got set from the outside -> push values down into fields
+                for (let fieldName of fieldNames) {
+                  currentStatusOfFieldsS[fieldName].field.get()?.s.set({
+                    tag: "parsed",
+                    parsed: parsing.parsed[fieldName],
+                  });
+                }
+              }
+            }
+          })
+        );
         // TODO: setup/cleanup sequence is not OK
         const customRenderFunc = opts?.render || null;
         if (customRenderFunc === null) {
