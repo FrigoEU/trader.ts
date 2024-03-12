@@ -11,7 +11,7 @@ import type { Either } from "purify-ts/Either";
 import type { Route } from "./route";
 
 declare module "http" {
-  interface ServerResponse extends OutgoingMessage {
+  interface ServerResponse {
     write(chunk: string | Uint8Array, callback?: (err: Error) => void): boolean;
     write(
       chunk: string | Uint8Array,
