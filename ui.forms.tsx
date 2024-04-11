@@ -2,7 +2,7 @@ import h from "trader-hyperscript";
 import { Source } from "./types/source";
 import { dyn, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
-import { isNil, isEqual } from "lodash";
+import { isNil, isEqual } from "lodash-es";
 import * as joda from "@js-joda/core";
 import { mapPartial } from "./utils";
 

@@ -1,7 +1,7 @@
 import * as joda from "@js-joda/core";
 import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
-import { Either, Left, Right } from "purify-ts";
+import { Either, Left, Right } from "purify-ts/Either";
 import { mapPartial } from "./utils";
 
 // TODO: maybe keeping these errors is a waste on production?
