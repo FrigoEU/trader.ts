@@ -61,6 +61,7 @@ export function runWithCustomSerializers<A>(f: () => A): A {
   const oldPlainTimePrototype = joda.LocalTime.prototype.toJSON;
   const oldPlainDateTimePrototype = joda.LocalDateTime.prototype.toJSON;
   const oldInstantPrototype = joda.Instant.prototype.toJSON;
+  const oldMonthPrototype = joda.Month.prototype.toJSON;
 
   Date.prototype.toJSON = function () {
     return {
@@ -98,6 +99,12 @@ export function runWithCustomSerializers<A>(f: () => A): A {
       value: this.toEpochMilli().toString(),
     } as any;
   };
+  joda.Month.prototype.toJSON = function () {
+    return {
+      __tag: "month",
+      value: this.ordinal(),
+    } as any;
+  };
   /* (ArrayBuffer.prototype as any).toJSON = function () {
    *   return {
    *     __tag: "ArrayBuffer",
@@ -113,6 +120,7 @@ export function runWithCustomSerializers<A>(f: () => A): A {
   joda.LocalTime.prototype.toJSON = oldPlainTimePrototype;
   joda.LocalDateTime.prototype.toJSON = oldPlainDateTimePrototype;
   joda.Instant.prototype.toJSON = oldInstantPrototype;
+  joda.Month.prototype.toJSON = oldMonthPrototype;
 
   return res;
 }
@@ -136,6 +144,9 @@ export function deserializeProps(p: string) {
     }
     if (x && x.__tag && x.__tag === "instant" && "value" in x) {
       return joda.Instant.ofEpochMilli(parseInt(x.value));
+    }
+    if (x && x.__tag && x.__tag === "month" && "value" in x) {
+      return joda.Month.of(parseInt(x.value) + 1);
     }
     if (x && x.type && x.type === "Buffer" && "data" in x) {
       return new Uint8Array(x.data);
