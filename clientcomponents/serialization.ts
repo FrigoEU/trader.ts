@@ -14,6 +14,7 @@ export function findNonSerializable(obj: any): any | null {
       val instanceof joda.LocalTime ||
       val instanceof joda.LocalDateTime ||
       val instanceof joda.Instant ||
+      val instanceof joda.Month ||
       val instanceof Buffer ||
       Array.isArray(val) ||
       (val.constructor === Object && // don't allow classes or functions
