@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.2.41",
+  "version": "1.2.42",
   "files": ["**/*.ts", "**/*.tsx"],
   "main": "index.ts",
   "sideEffects": false,
@@ -8,10 +8,10 @@
     "@js-joda/core": "^5.3.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
-    "lodash-es": "^4.17.21",
     "openapi-types": "^7.2.3",
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "^0.16.1",
+    "rambda": "^9.2.0",
     "trader-hyperscript": "^2.0.7"
   },
   "scripts": {
@@ -19,7 +19,6 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.4.0",
-    "@types/lodash-es": "^4.17.4",
     "@types/node": "^14.17.5",
     "prettier": "2.2.1",
     "typescript": "4.6.4"

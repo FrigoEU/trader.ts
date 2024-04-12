@@ -1,4 +1,3 @@
-import { chain, orderBy } from "lodash-es";
 import * as c from "purify-ts/Codec";
 import { checkAllCasesHandled } from "../utils";
 
@@ -20,21 +19,20 @@ export function watchEventC<Item extends { identifier: number }>(
 export function orderWatchEvents<T extends { identifier: number }>(
   events: Array<watchEvent<T>>
 ): Array<watchEvent<T>> {
-  return orderBy(
-    events,
-    (ev) => {
-      if (ev.tag === "deleted") {
-        return 0;
-      } else if (ev.tag === "new") {
-        return 1;
-      } else if (ev.tag === "updated") {
-        return 2;
-      } else {
-        return checkAllCasesHandled(ev);
-      }
-    },
-    "asc"
-  );
+  function getOrd(ev: watchEvent<T>): number {
+    if (ev.tag === "deleted") {
+      return 0;
+    } else if (ev.tag === "new") {
+      return 1;
+    } else if (ev.tag === "updated") {
+      return 2;
+    } else {
+      return checkAllCasesHandled(ev);
+    }
+  }
+  return events.concat().sort((ev1, ev2) => {
+    return getOrd(ev1) > getOrd(ev2) ? 1 : -1;
+  });
 }
 
 export function processWatchEventWithId<T extends { identifier: number }>(
@@ -44,14 +42,11 @@ export function processWatchEventWithId<T extends { identifier: number }>(
   if (ev.tag === "new" || ev.tag === "updated") {
     // if it's new, we shouldn't do the filter step, but we do it anyway, just in case
 
-    return chain(current)
+    return current
       .filter((currI) => currI.identifier !== ev.item.identifier)
-      .concat(ev.item)
-      .value();
+      .concat(ev.item);
   } else if (ev.tag === "deleted") {
-    return chain(current)
-      .filter((item) => item.identifier !== ev.item.identifier)
-      .value();
+    return current.filter((item) => item.identifier !== ev.item.identifier);
   } else {
     return checkAllCasesHandled(ev);
   }

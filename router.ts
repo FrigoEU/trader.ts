@@ -5,7 +5,6 @@ import type {
   ServerResponse as ServerResponse_,
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
-import { pullAt, takeRightWhile } from "lodash-es";
 import { Codec, nullType } from "purify-ts/Codec";
 import type { Either } from "purify-ts/Either";
 import type { Route } from "./route";
@@ -680,4 +679,25 @@ export class HTTPError extends Error {
     this.message = message;
     this.httpReturnCode = code;
   }
+}
+
+function pullAt<T>(arr: T[], ns: number[]): T[] {
+  ns.sort();
+  for (let n = ns.length - 1; n >= 0; n--) {
+    arr.splice(ns[n], 1);
+  }
+  return arr;
+}
+
+function takeRightWhile<T>(arr: T[], cb: (t: T) => boolean): T[] {
+  let newArr: T[] = [];
+  for (let i = arr.length - 1; i >= 0; i--) {
+    const curr = arr[i];
+    if (cb(curr)) {
+      newArr.unshift(curr);
+    } else {
+      return newArr;
+    }
+  }
+  return newArr;
 }

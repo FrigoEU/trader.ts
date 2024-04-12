@@ -2,7 +2,7 @@ import h from "trader-hyperscript";
 import { Source } from "./types/source";
 import { dyn, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
-import { isNil, isEqual } from "lodash-es";
+import { equals } from "rambda";
 import * as joda from "@js-joda/core";
 import { mapPartial } from "./utils";
 
@@ -192,7 +192,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
           mainSource.observe((parsing) => {
             if (parsing.tag === "parsed") {
               const currentFullValueFromFields = recalcMainSourceImplementation();
-              if (isEqual(parsing, currentFullValueFromFields)) {
+              if (equals(parsing, currentFullValueFromFields)) {
                 // do nothing
               } else {
                 // Source got set from the outside -> push values down into fields
@@ -524,7 +524,7 @@ export function selectBox<T>(
     : null;
   const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
   // We save the SHOWN value into LS, not the "identifier"
-  const initial = !isNil(fromLs)
+  const initial = !isNil(fromLs !== null && fromLs !== undefined)
     ? fromLs
     : !isNil(initial_)
     ? show(initial_)
@@ -739,7 +739,7 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
       if (parsed !== undefined) {
         const newParsing = { tag: "parsed" as const, parsed };
         const currentParsing = opts.parsingS.get();
-        if (!isEqual(newParsing, currentParsing)) {
+        if (!equals(newParsing, currentParsing)) {
           opts.parsingS.set(newParsing);
         }
       } else {
@@ -753,10 +753,14 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
       if (parsing.tag === "parsed") {
         const currentRaw = opts.rawS.get();
         const newRaw = opts.parsedToRaw(parsing.parsed);
-        if (!isEqual(currentRaw, newRaw)) {
+        if (!equals(currentRaw, newRaw)) {
           opts.rawS.set(newRaw);
         }
       }
     })
   );
+}
+
+function isNil(value: any): value is null | undefined {
+  return value === null || value === undefined;
 }
