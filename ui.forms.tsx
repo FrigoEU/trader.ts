@@ -6,6 +6,13 @@ import { equals } from "rambda";
 import * as joda from "@js-joda/core";
 import { mapPartial } from "./utils";
 
+const DEBUG = false;
+function log(s: string) {
+  if (DEBUG) {
+    console.log(s);
+  }
+}
+
 export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   private readonly fieldCalculators: {
     [fieldName in keyof ParsedScope]: {
@@ -67,7 +74,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       };
     };
 
-    console.log("Making current status sources");
+    log("Making current status sources");
 
     for (let fieldName of fieldNames) {
       // Setting up a collection of sources where we always have the current "Parsing" value of each field
@@ -107,13 +114,13 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
       const res = runFieldCalcImplementation(fieldCalc);
       if (res === null) {
-        console.log(`Field ${String(fieldName)} not initialized`);
+        log(`Field ${String(fieldName)} not initialized`);
         curr.source.set({ tag: "initial" });
       } else {
-        console.log(`Loading field ${String(fieldName)}`);
+        log(`Loading field ${String(fieldName)}`);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
-          console.log(`Loaded field ${String(fieldName)}`);
+          log(`Loaded field ${String(fieldName)}`);
           curr.field.set(field);
 
           // "Forward"ing source
@@ -170,7 +177,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       return { tag: "parsed", parsed: buildingUp };
     }
 
-    console.log("Kicking off calculations");
+    log("Kicking off calculations");
 
     for (let fieldName of fieldNames) {
       // Kick off calculations
