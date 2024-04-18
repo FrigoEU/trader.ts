@@ -15,9 +15,6 @@ export const Source = class Source<T> implements Source<T> {
   public i: number; // So equality checks fail
 
   constructor(value: T) {
-    if (typeof window === "undefined") {
-      throw new Error("Don't use this serverside");
-    }
     this.value = value;
     this.observers = [];
     this.i = clientSourceI;
