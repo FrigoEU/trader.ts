@@ -222,7 +222,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
               })
             );
           }
-          return <div>{renderedFields}</div>;
+          return renderedFields.flat();
         } else {
           const renderedFields = {} as {
             [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
