@@ -524,7 +524,7 @@ export function selectBox<T>(
     : null;
   const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
   // We save the SHOWN value into LS, not the "identifier"
-  const initial = !isNil(fromLs !== null && fromLs !== undefined)
+  const initial = !isNil(fromLs)
     ? fromLs
     : !isNil(initial_)
     ? show(initial_)
