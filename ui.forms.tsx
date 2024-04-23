@@ -288,6 +288,7 @@ export function textBox(opts: {
   function render() {
     return standardinputs.textbox({
       ...opts,
+      required: opts.mandatory,
       source: rawS,
       label: opts.label,
     });
