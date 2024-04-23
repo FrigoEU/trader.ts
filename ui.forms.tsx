@@ -402,6 +402,7 @@ export function dateBox(opts: {
     });
     return standardinputs.textbox({
       ...opts,
+      required: true,
       source: rawS,
       type: "date",
     });
