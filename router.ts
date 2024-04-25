@@ -262,6 +262,7 @@ export class Router<Context, LoginToken> {
             res.writeHead(302, {
               Location: r.url,
             });
+            res.end();
           } else {
             res.writeHead(200, {
               "Content-Type": "text/html; charset=utf-8",
