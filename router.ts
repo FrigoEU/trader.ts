@@ -302,18 +302,13 @@ export class Router<Context, LoginToken> {
   ): void {
     this.custom(newSpec, opts, async function (ctx, p, b, auth, req, res) {
       return run(ctx, p, b, auth, req, res).then(function (r) {
-        if (newSpec.returns === null) {
-          res.writeHead(200, { "Content-Type": "text/plain" });
-          res.end();
-        } else {
-          const responseAsString = JSON.stringify(newSpec.returns.encode(r));
-          res.writeHead(200, {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(responseAsString),
-          });
-          // console.log(JSON.stringify(newSpec.returns.encode(r)));
-          res.end(responseAsString);
-        }
+        const responseAsString = JSON.stringify(newSpec.returns.encode(r));
+        res.writeHead(200, {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(responseAsString),
+        });
+        // console.log(JSON.stringify(newSpec.returns.encode(r)));
+        res.end(responseAsString);
       });
     });
   }
