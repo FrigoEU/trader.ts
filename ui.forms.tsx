@@ -120,17 +120,23 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         log(`Loading field ${String(fieldName)}`);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
-          log(`Loaded field ${String(fieldName)}`);
-          curr.field.set(field);
+          if (curr.source.get().tag === "loading") {
+            log(`Loaded field ${String(fieldName)}`);
+            curr.field.set(field);
 
-          // "Forward"ing source
-          curr.source.set(field.s.get());
-          curr.cleanups.push(
-            field.s.observe((parsingVal) => curr.source.set(parsingVal))
-          );
+            // "Forward"ing source
+            curr.source.set(field.s.get());
+            curr.cleanups.push(
+              field.s.observe((parsingVal) => curr.source.set(parsingVal))
+            );
 
-          // Adding cleanup of field to our cleanups
-          curr.cleanups.push(field.cleanup);
+            // Adding cleanup of field to our cleanups
+            curr.cleanups.push(field.cleanup);
+          } else {
+            log(
+              `Loaded field ${String(fieldName)} but no longer in loading state`
+            );
+          }
         });
       }
     }
