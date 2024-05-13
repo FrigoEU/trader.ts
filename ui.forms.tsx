@@ -421,11 +421,14 @@ export function dateBox(opts: {
   });
 }
 
-export function constantField<T>(val: T): Promise<Field<T>> {
+export function constantField<T>(
+  val: T,
+  opts?: { render?: HTMLElement | HTMLElement[] }
+): Promise<Field<T>> {
   return Promise.resolve({
     s: new Source({ tag: "parsed", parsed: val }),
     cleanup: () => {},
-    render: () => <span></span>,
+    render: () => opts?.render || <span></span>,
   });
 }
 
