@@ -148,6 +148,7 @@ export class Router<Context, LoginToken> {
     needsAuthorization: NeedsAuth,
     req: ServerRequest,
     res: ServerResponse,
+    allowRedirectToDefault: boolean,
     cont: (token: NeedsAuth extends true ? LoginToken : null) => void
   ): void {
     const router = this;
@@ -160,7 +161,7 @@ export class Router<Context, LoginToken> {
           authorizationRes.caseOf({
             Left: (error) => {
               if (typeof error === "string") {
-                if (redirectUrl !== null) {
+                if (redirectUrl !== null && allowRedirectToDefault) {
                   res.writeHead(302, { Location: redirectUrl });
                   res.end();
                 } else {
@@ -300,17 +301,21 @@ export class Router<Context, LoginToken> {
       res: ServerResponse
     ) => Promise<Returns>
   ): void {
-    this.custom(newSpec, opts, async function (ctx, p, b, auth, req, res) {
-      return run(ctx, p, b, auth, req, res).then(function (r) {
-        const responseAsString = JSON.stringify(newSpec.returns.encode(r));
-        res.writeHead(200, {
-          "Content-Type": "application/json",
-          "Content-Length": Buffer.byteLength(responseAsString),
+    this.custom(
+      newSpec,
+      { ...opts, allowRedirectionToDefault: false },
+      async function (ctx, p, b, auth, req, res) {
+        return run(ctx, p, b, auth, req, res).then(function (r) {
+          const responseAsString = JSON.stringify(newSpec.returns.encode(r));
+          res.writeHead(200, {
+            "Content-Type": "application/json",
+            "Content-Length": Buffer.byteLength(responseAsString),
+          });
+          // console.log(JSON.stringify(newSpec.returns.encode(r)));
+          res.end(responseAsString);
         });
-        // console.log(JSON.stringify(newSpec.returns.encode(r)));
-        res.end(responseAsString);
-      });
-    });
+      }
+    );
   }
 
   /**
@@ -475,6 +480,7 @@ export class Router<Context, LoginToken> {
     newSpec: APISpec<Params, Body, Returns>,
     opts: {
       needsAuthorization: NeedsAuth;
+      allowRedirectionToDefault?: false;
       tags: { name: string; comment: string }[];
     },
     run: (
@@ -524,6 +530,7 @@ export class Router<Context, LoginToken> {
               opts.needsAuthorization,
               req,
               res,
+              opts.allowRedirectionToDefault ?? true,
               function continueWithTokenAndBody(
                 t: NeedsAuth extends true ? LoginToken : null
               ): void {
