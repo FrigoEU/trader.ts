@@ -453,7 +453,11 @@ export function checkBox(opts: {
 
 export function numberBox(
   initialVal?: number,
-  opts?: { label?: string }
+  opts?: {
+    label?: string;
+    constraint?: "positive" | "negative";
+    constraintLabel?: string;
+  }
 ): Promise<Field<number>> {
   const rawS = new Source(initialVal?.toString() || "");
 
@@ -465,10 +469,26 @@ export function numberBox(
 
   function parse(
     raw: string
-  ): { tag: "parsed"; parsed: number } | { tag: "err" } {
+  ): { tag: "parsed"; parsed: number } | { tag: "err"; label?: string } {
     try {
       const parsed = parseFloat(raw);
       if (!isNaN(parsed)) {
+        if (
+          opts &&
+          opts.constraint &&
+          opts.constraint === "positive" &&
+          parsed < 0
+        ) {
+          return { tag: "err", label: opts.constraintLabel || "" };
+        }
+        if (
+          opts &&
+          opts.constraint &&
+          opts.constraint === "negative" &&
+          parsed > 0
+        ) {
+          return { tag: "err", label: opts.constraintLabel || "" };
+        }
         return { tag: "parsed", parsed };
       } else {
         return { tag: "err" };
