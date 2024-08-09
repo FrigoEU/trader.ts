@@ -9,7 +9,8 @@ const timeoutMS = 10000;
 export function rpc<Parameters, Body, Returns>(
   spec: APISpec<Parameters, Body, Returns>,
   params: Parameters,
-  b: Body
+  b: Body,
+  opts?: { timeoutMS?: number }
 ): Promise<Returns> {
   const url = spec.route.link(params);
   const fetchP = fetch(url, {
@@ -53,7 +54,7 @@ export function rpc<Parameters, Body, Returns>(
   const timeoutP: Promise<Returns> = new Promise((_, reject) =>
     setTimeout(
       () => reject(new Error("Failed to contact server: timeout")),
-      timeoutMS
+      opts?.timeoutMS || timeoutMS
     )
   );
   return Promise.race([fetchP, timeoutP]);

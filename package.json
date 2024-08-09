@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.2.42",
+  "version": "1.2.56",
   "files": ["**/*.ts", "**/*.tsx"],
   "main": "index.ts",
   "sideEffects": false,
@@ -12,7 +12,7 @@
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "^0.16.1",
     "rambda": "^9.2.0",
-    "trader-hyperscript": "^2.0.7"
+    "trader-hyperscript": "^2.0.9"
   },
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation"
@@ -21,6 +21,7 @@
     "@types/cookie": "^0.4.0",
     "@types/node": "^14.17.5",
     "prettier": "2.2.1",
+    "typescript-language-server": "^4.3.3",
     "typescript": "4.6.4"
   }
 }

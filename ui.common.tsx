@@ -110,6 +110,7 @@ export function textbox(opts: {
   label?: string;
   placeholder?: string;
   id?: string;
+  required?: boolean;
 }) {
   const i = (opts.type === "textarea" ? (
     <textarea
@@ -126,6 +127,7 @@ export function textbox(opts: {
       className={opts.class || ""}
       value={opts.source.get()}
       placeholder={opts.placeholder || ""}
+      required={opts.required || undefined}
       id={opts.id || ""}
     />
   )) as HTMLInputElement;

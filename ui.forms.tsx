@@ -6,6 +6,13 @@ import { equals } from "rambda";
 import * as joda from "@js-joda/core";
 import { mapPartial } from "./utils";
 
+const DEBUG = false;
+function log(s: string) {
+  if (DEBUG) {
+    console.log(s);
+  }
+}
+
 export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   private readonly fieldCalculators: {
     [fieldName in keyof ParsedScope]: {
@@ -67,7 +74,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       };
     };
 
-    console.log("Making current status sources");
+    log("Making current status sources");
 
     for (let fieldName of fieldNames) {
       // Setting up a collection of sources where we always have the current "Parsing" value of each field
@@ -107,23 +114,29 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
       const res = runFieldCalcImplementation(fieldCalc);
       if (res === null) {
-        console.log(`Field ${String(fieldName)} not initialized`);
+        log(`Field ${String(fieldName)} not initialized`);
         curr.source.set({ tag: "initial" });
       } else {
-        console.log(`Loading field ${String(fieldName)}`);
+        log(`Loading field ${String(fieldName)}`);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
-          console.log(`Loaded field ${String(fieldName)}`);
-          curr.field.set(field);
+          if (curr.source.get().tag === "loading") {
+            log(`Loaded field ${String(fieldName)}`);
+            curr.field.set(field);
 
-          // "Forward"ing source
-          curr.source.set(field.s.get());
-          curr.cleanups.push(
-            field.s.observe((parsingVal) => curr.source.set(parsingVal))
-          );
+            // "Forward"ing source
+            curr.source.set(field.s.get());
+            curr.cleanups.push(
+              field.s.observe((parsingVal) => curr.source.set(parsingVal))
+            );
 
-          // Adding cleanup of field to our cleanups
-          curr.cleanups.push(field.cleanup);
+            // Adding cleanup of field to our cleanups
+            curr.cleanups.push(field.cleanup);
+          } else {
+            log(
+              `Loaded field ${String(fieldName)} but no longer in loading state`
+            );
+          }
         });
       }
     }
@@ -170,7 +183,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       return { tag: "parsed", parsed: buildingUp };
     }
 
-    console.log("Kicking off calculations");
+    log("Kicking off calculations");
 
     for (let fieldName of fieldNames) {
       // Kick off calculations
@@ -222,7 +235,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
               })
             );
           }
-          return <div>{renderedFields}</div>;
+          return renderedFields.flat();
         } else {
           const renderedFields = {} as {
             [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
@@ -281,6 +294,7 @@ export function textBox(opts: {
   function render() {
     return standardinputs.textbox({
       ...opts,
+      required: opts.mandatory,
       source: rawS,
       label: opts.label,
     });
@@ -394,6 +408,7 @@ export function dateBox(opts: {
     });
     return standardinputs.textbox({
       ...opts,
+      required: true,
       source: rawS,
       type: "date",
     });
@@ -406,11 +421,14 @@ export function dateBox(opts: {
   });
 }
 
-export function constantField<T>(val: T): Promise<Field<T>> {
+export function constantField<T>(
+  val: T,
+  opts?: { render?: HTMLElement | HTMLElement[] }
+): Promise<Field<T>> {
   return Promise.resolve({
     s: new Source({ tag: "parsed", parsed: val }),
     cleanup: () => {},
-    render: () => <span></span>,
+    render: () => opts?.render || <span></span>,
   });
 }
 
@@ -544,7 +562,7 @@ export function selectBox<T>(
     : null;
   const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
   // We save the SHOWN value into LS, not the "identifier"
-  const initial = !isNil(fromLs !== null && fromLs !== undefined)
+  const initial = !isNil(fromLs)
     ? fromLs
     : !isNil(initial_)
     ? show(initial_)
