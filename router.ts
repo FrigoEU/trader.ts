@@ -236,9 +236,7 @@ export class Router<Context> {
 
   page<Params, Token, NeedsAuth extends null | authfunc<Context, Token>>(
     route: Route<Params>,
-    opts: {
-      needsAuthorization: NeedsAuth;
-    },
+    needsAuthorization: NeedsAuth,
     run: (
       context: Context,
       p: Params,
@@ -254,10 +252,7 @@ export class Router<Context> {
         body: null,
         returns: nullType,
       },
-      {
-        needsAuthorization: opts.needsAuthorization,
-        tags: [{ name: "pages", comment: "" }],
-      },
+      needsAuthorization,
       async function (ctx, p, _b, auth, req, res) {
         return run(ctx, p, auth, req, res).then(function (r) {
           if ("tag" in r) {
@@ -295,10 +290,7 @@ export class Router<Context> {
     NeedsAuth extends null | authfunc<Context, Token>
   >(
     newSpec: APISpec<Params, Body, Returns>,
-    opts: {
-      needsAuthorization: NeedsAuth;
-      tags?: { name: string; comment: string }[];
-    },
+    needsAuthorization: NeedsAuth,
     run: (
       context: Context,
       p: Params,
@@ -310,7 +302,7 @@ export class Router<Context> {
   ): void {
     this.custom<Params, Body, Returns, Token, NeedsAuth>(
       newSpec,
-      { ...opts, allowRedirectionToDefault: false },
+      needsAuthorization,
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
           const responseAsString = JSON.stringify(newSpec.returns.encode(r));
@@ -339,9 +331,7 @@ export class Router<Context> {
     NeedsAuth extends null | authfunc<Context, Token>
   >(
     newSpec: SSESpec<Params, Returns[]>,
-    opts: {
-      needsAuthorization: NeedsAuth;
-    },
+    needsAuthorization: NeedsAuth,
     run: (context: Context, newItem: (toPush: Returns[]) => void) => void,
     filter: (p: Params, r: Returns) => boolean,
     removeItemsFromCacheAfterMinutes: number
@@ -416,7 +406,7 @@ export class Router<Context> {
         body: null,
         returns: nullType,
       },
-      { ...opts, tags: [] },
+      needsAuthorization,
       async function (_ctx, p, _b, _auth, req, res) {
         // We immediately reply to the client saying to start an SSE connection
         res.writeHead(200, {
@@ -496,11 +486,7 @@ export class Router<Context> {
     NeedsAuth extends null | authfunc<Context, Token>
   >(
     newSpec: APISpec<Params, Body, Returns>,
-    opts: {
-      needsAuthorization: NeedsAuth;
-      allowRedirectionToDefault?: false;
-      tags?: { name: string; comment: string }[];
-    },
+    needsAuthorization: NeedsAuth,
     run: (
       context: Context,
       p: Params,
@@ -521,8 +507,8 @@ export class Router<Context> {
       method: newSpec.method,
       body: newSpec.body,
       returns: newSpec.returns,
-      needsAuthorization: opts.needsAuthorization,
-      tags: opts.tags || [],
+      needsAuthorization: needsAuthorization,
+      tags: [],
       run: function (
         runOpts: RunOptions,
         req: ServerRequest,
@@ -542,7 +528,7 @@ export class Router<Context> {
               NeedsAuth extends null ? null : Token
             >
           > =
-            opts.needsAuthorization === null
+            needsAuthorization === null
               ? Promise.resolve(
                   Right(null) as Either<
                     | string
@@ -551,7 +537,7 @@ export class Router<Context> {
                     NeedsAuth extends null ? null : Token
                   >
                 )
-              : (opts.needsAuthorization(req, router.context) as Promise<
+              : (needsAuthorization(req, router.context) as Promise<
                   Either<
                     | string
                     | { tag: "redirect"; redirectUrl: string }
