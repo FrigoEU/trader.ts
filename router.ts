@@ -6,7 +6,7 @@ import type {
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
 import { Codec, nullType } from "purify-ts/Codec";
-import { Either, Right } from "purify-ts/Either";
+import { Either } from "purify-ts/Either";
 import type { Route } from "./route";
 
 declare module "http" {
@@ -111,7 +111,7 @@ export type InternalSpec<Context, Params, Token> = {
   tags: { name: string; comment: string }[];
 };
 
-type authfunc<Context, Token> = (
+export type authfunc<Context, Token> = (
   req: ServerRequest,
   context: Context
 ) => Promise<
@@ -234,18 +234,18 @@ export class Router<Context> {
     }
   }
 
-  page<Params, Token, NeedsAuth extends null | authfunc<Context, Token>>(
+  page<Params, Token>(
     route: Route<Params>,
-    needsAuthorization: NeedsAuth,
+    needsAuthorization: authfunc<Context, Token>,
     run: (
       context: Context,
       p: Params,
-      auth: NeedsAuth extends null ? null : Token,
+      auth: Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<HTMLElement | { tag: "redirect"; url: string }>
   ): void {
-    this.custom<Params, null, null, Token, NeedsAuth>(
+    this.custom<Params, null, null, Token>(
       {
         route: route,
         method: "GET",
@@ -282,25 +282,19 @@ export class Router<Context> {
    * @typeParam Returns - Return type of API, will be JSON.stringify'd
    *
    */
-  api<
-    Params,
-    Body,
-    Returns,
-    Token,
-    NeedsAuth extends null | authfunc<Context, Token>
-  >(
+  api<Params, Body, Returns, Token>(
     newSpec: APISpec<Params, Body, Returns>,
-    needsAuthorization: NeedsAuth,
+    needsAuthorization: authfunc<Context, Token>,
     run: (
       context: Context,
       p: Params,
       b: Body,
-      auth: NeedsAuth extends null ? null : Token,
+      auth: Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<Returns>
   ): void {
-    this.custom<Params, Body, Returns, Token, NeedsAuth>(
+    this.custom<Params, Body, Returns, Token>(
       newSpec,
       needsAuthorization,
       async function (ctx, p, b, auth, req, res) {
@@ -324,14 +318,9 @@ export class Router<Context> {
    * @param filter - Does this subscription want this item?
    *
    */
-  serverSentEvents<
-    Params,
-    Returns,
-    Token,
-    NeedsAuth extends null | authfunc<Context, Token>
-  >(
+  serverSentEvents<Params, Returns, Token>(
     newSpec: SSESpec<Params, Returns[]>,
-    needsAuthorization: NeedsAuth,
+    needsAuthorization: authfunc<Context, Token>,
     run: (context: Context, newItem: (toPush: Returns[]) => void) => void,
     filter: (p: Params, r: Returns) => boolean,
     removeItemsFromCacheAfterMinutes: number
@@ -478,20 +467,14 @@ export class Router<Context> {
   }
 
   // If you call this function, you're responsible for handling (and .end()'ing) the response 100% yourself
-  custom<
-    Params,
-    Body,
-    Returns,
-    Token,
-    NeedsAuth extends null | authfunc<Context, Token>
-  >(
+  custom<Params, Body, Returns, Token>(
     newSpec: APISpec<Params, Body, Returns>,
-    needsAuthorization: NeedsAuth,
+    needsAuthorization: authfunc<Context, Token>,
     run: (
       context: Context,
       p: Params,
       b: Body,
-      auth: NeedsAuth extends null ? null : Token,
+      auth: Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<void>
@@ -510,7 +493,7 @@ export class Router<Context> {
       needsAuthorization: needsAuthorization,
       tags: [],
       run: function (
-        runOpts: RunOptions,
+        _runOpts: RunOptions,
         req: ServerRequest,
         res: ServerResponse,
         p: Params
@@ -525,26 +508,16 @@ export class Router<Context> {
               | string
               | { tag: "redirect"; redirectUrl: string }
               | [number, OutgoingHttpHeaders],
-              NeedsAuth extends null ? null : Token
+              Token
             >
-          > =
-            needsAuthorization === null
-              ? Promise.resolve(
-                  Right(null) as Either<
-                    | string
-                    | { tag: "redirect"; redirectUrl: string }
-                    | [number, OutgoingHttpHeaders],
-                    NeedsAuth extends null ? null : Token
-                  >
-                )
-              : (needsAuthorization(req, router.context) as Promise<
-                  Either<
-                    | string
-                    | { tag: "redirect"; redirectUrl: string }
-                    | [number, OutgoingHttpHeaders],
-                    NeedsAuth extends null ? null : Token
-                  >
-                >);
+          > = needsAuthorization(req, router.context) as Promise<
+            Either<
+              | string
+              | { tag: "redirect"; redirectUrl: string }
+              | [number, OutgoingHttpHeaders],
+              Token
+            >
+          >;
 
           authP.then(
             (token) => {
