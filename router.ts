@@ -6,7 +6,7 @@ import type {
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
 import { Codec, nullType } from "purify-ts/Codec";
-import type { Either } from "purify-ts/Either";
+import { Either, Right } from "purify-ts/Either";
 import type { Route } from "./route";
 
 declare module "http" {
@@ -26,7 +26,7 @@ export type ServerResponse = ServerResponse_ | Http2ServerResponse;
 const isDev = process.env.NODE_ENV || "development" === "development";
 
 function checkMoreGeneralRoutes(
-  existingSpecs: InternalSpec<any>[],
+  existingSpecs: InternalSpec<any, any, any>[],
   newMethod: HTTPMethod,
   newRoute: Route<any>
 ) {
@@ -96,7 +96,7 @@ export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
   ? Returns
   : never;
 
-export type InternalSpec<Params> = {
+export type InternalSpec<Context, Params, Token> = {
   route: Route<Params>;
   method: HTTPMethod;
   body: Codec<any> | null;
@@ -107,14 +107,21 @@ export type InternalSpec<Params> = {
     res: ServerResponse,
     p: Params
   ) => void;
-  needsAuthorization: boolean;
+  needsAuthorization: null | authfunc<Context, Token>;
   tags: { name: string; comment: string }[];
 };
 
-type authfunc<Context, LoginToken> = (
+type authfunc<Context, Token> = (
   req: ServerRequest,
   context: Context
-) => Promise<Either<string | [number, OutgoingHttpHeaders], LoginToken>>;
+) => Promise<
+  Either<
+    | string
+    | { tag: "redirect"; redirectUrl: string }
+    | [number, OutgoingHttpHeaders],
+    Token
+  >
+>;
 
 type RunOptions = { redirectOnUnauthorizedPage: string | null };
 
@@ -129,73 +136,67 @@ export type RoutesRec =
 const mainFileName = require.main?.filename || "";
 const runningInTest = mainFileName.includes("alsatian");
 
-export class Router<Context, LoginToken> {
+export class Router<Context> {
   private context: Context;
-  // private urlprefix: string; // Removing this, because this makes routes no longer usable independently from router!
-  private authFunc: null | authfunc<Context, LoginToken>;
-  private specs: InternalSpec<any>[] = [];
+  private specs: InternalSpec<Context, any, any>[] = [];
 
-  constructor(
-    context: Context,
-    authFunc: null | authfunc<Context, LoginToken>
-  ) {
+  constructor(context: Context) {
     this.context = context;
-    this.authFunc = authFunc;
   }
 
-  private handleAuthorization<NeedsAuth extends boolean>(
-    redirectUrl: string | null,
-    needsAuthorization: NeedsAuth,
-    req: ServerRequest,
-    res: ServerResponse,
-    allowRedirectToDefault: boolean,
-    cont: (token: NeedsAuth extends true ? LoginToken : null) => void
-  ): void {
-    const router = this;
-    if (needsAuthorization) {
-      (router.authFunc as authfunc<Context, LoginToken>)(
-        /* safe because of previous check */ req,
-        router.context
-      )
-        .then(function (authorizationRes) {
-          authorizationRes.caseOf({
-            Left: (error) => {
-              if (typeof error === "string") {
-                if (redirectUrl !== null && allowRedirectToDefault) {
-                  res.writeHead(302, { Location: redirectUrl });
-                  res.end();
-                } else {
-                  res.writeHead(401, { "Content-Type": "text/plain" });
-                  res.write("Failed to authorize: " + error);
-                  res.end();
-                }
-              } else {
-                res.writeHead(error[0], error[1]);
-                res.end();
-              }
-            },
-            Right: (token) =>
-              cont(token as NeedsAuth extends true ? LoginToken : null),
-          });
-        })
-        .catch(function (err) {
-          res.writeHead(500, { "Content-Type": "text/plain" });
-          res.write("Server error: " + err);
-          res.end();
-          console.error(
-            "Encountered error during run function of authorization."
-          );
-          console.error(`Incoming url: ${req.url}`);
-          console.error(`Headers: ${JSON.stringify(req.headers)}`);
-          console.error(`Server error: ${err}`);
-          if ("detail" in err) {
-            console.error(`Error detail: ${err.detail}`);
-          }
-        });
-    } else {
-      cont(null as NeedsAuth extends true ? LoginToken : null);
-    }
-  }
+  // private handleAuthorization<NeedsAuth extends boolean>(
+  //   redirectUrl: string | null,
+  //   needsAuthorization: NeedsAuth,
+  //   req: ServerRequest,
+  //   res: ServerResponse,
+  //   allowRedirectToDefault: boolean,
+  //   cont: (token: NeedsAuth extends true ? LoginToken : null) => void
+  // ): void {
+  //   const router = this;
+  //   if (needsAuthorization) {
+  //     (router.authFunc as authfunc<Context, LoginToken>)(
+  //       /* safe because of previous check */ req,
+  //       router.context
+  //     )
+  //       .then(function (authorizationRes) {
+  //         authorizationRes.caseOf({
+  //           Left: (error) => {
+  //             if (typeof error === "string") {
+  //               if (redirectUrl !== null && allowRedirectToDefault) {
+  //                 res.writeHead(302, { Location: redirectUrl });
+  //                 res.end();
+  //               } else {
+  //                 res.writeHead(401, { "Content-Type": "text/plain" });
+  //                 res.write("Failed to authorize: " + error);
+  //                 res.end();
+  //               }
+  //             } else {
+  //               res.writeHead(error[0], error[1]);
+  //               res.end();
+  //             }
+  //           },
+  //           Right: (token) =>
+  //             cont(token as NeedsAuth extends true ? LoginToken : null),
+  //         });
+  //       })
+  //       .catch(function (err) {
+  //         res.writeHead(500, { "Content-Type": "text/plain" });
+  //         res.write("Server error: " + err);
+  //         res.end();
+  //         console.error(
+  //           "Encountered error during run function of authorization."
+  //         );
+  //         console.error(`Incoming url: ${req.url}`);
+  //         console.error(`Headers: ${JSON.stringify(req.headers)}`);
+  //         console.error(`Server error: ${err}`);
+  //         if ("detail" in err) {
+  //           console.error(`Error detail: ${err.detail}`);
+  //         }
+  //       });
+  //   } else {
+  //     cont(null as NeedsAuth extends true ? LoginToken : null);
+  //   }
+  // }
 
   private getBody<Body>(
     codec: Codec<Body> | null,
@@ -233,7 +234,7 @@ export class Router<Context, LoginToken> {
     }
   }
 
-  page<Params, NeedsAuth extends boolean>(
+  page<Params, Token, NeedsAuth extends null | authfunc<Context, Token>>(
     route: Route<Params>,
     opts: {
       needsAuthorization: NeedsAuth;
@@ -241,12 +242,12 @@ export class Router<Context, LoginToken> {
     run: (
       context: Context,
       p: Params,
-      auth: NeedsAuth extends true ? LoginToken : null,
+      auth: NeedsAuth extends null ? null : Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<HTMLElement | { tag: "redirect"; url: string }>
   ): void {
-    this.custom(
+    this.custom<Params, null, null, Token, NeedsAuth>(
       {
         route: route,
         method: "GET",
@@ -286,22 +287,28 @@ export class Router<Context, LoginToken> {
    * @typeParam Returns - Return type of API, will be JSON.stringify'd
    *
    */
-  api<Params, Body, Returns, NeedsAuth extends boolean>(
+  api<
+    Params,
+    Body,
+    Returns,
+    Token,
+    NeedsAuth extends null | authfunc<Context, Token>
+  >(
     newSpec: APISpec<Params, Body, Returns>,
     opts: {
       needsAuthorization: NeedsAuth;
-      tags: { name: string; comment: string }[];
+      tags?: { name: string; comment: string }[];
     },
     run: (
       context: Context,
       p: Params,
       b: Body,
-      auth: NeedsAuth extends true ? LoginToken : null,
+      auth: NeedsAuth extends null ? null : Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<Returns>
   ): void {
-    this.custom(
+    this.custom<Params, Body, Returns, Token, NeedsAuth>(
       newSpec,
       { ...opts, allowRedirectionToDefault: false },
       async function (ctx, p, b, auth, req, res) {
@@ -325,7 +332,12 @@ export class Router<Context, LoginToken> {
    * @param filter - Does this subscription want this item?
    *
    */
-  serverSentEvents<Params, Returns, NeedsAuth extends boolean>(
+  serverSentEvents<
+    Params,
+    Returns,
+    Token,
+    NeedsAuth extends null | authfunc<Context, Token>
+  >(
     newSpec: SSESpec<Params, Returns[]>,
     opts: {
       needsAuthorization: NeedsAuth;
@@ -476,18 +488,24 @@ export class Router<Context, LoginToken> {
   }
 
   // If you call this function, you're responsible for handling (and .end()'ing) the response 100% yourself
-  custom<Params, Body, Returns, NeedsAuth extends boolean>(
+  custom<
+    Params,
+    Body,
+    Returns,
+    Token,
+    NeedsAuth extends null | authfunc<Context, Token>
+  >(
     newSpec: APISpec<Params, Body, Returns>,
     opts: {
       needsAuthorization: NeedsAuth;
       allowRedirectionToDefault?: false;
-      tags: { name: string; comment: string }[];
+      tags?: { name: string; comment: string }[];
     },
     run: (
       context: Context,
       p: Params,
       b: Body,
-      auth: NeedsAuth extends true ? LoginToken : null,
+      auth: NeedsAuth extends null ? null : Token,
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<void>
@@ -497,19 +515,14 @@ export class Router<Context, LoginToken> {
     if (isDev) {
       checkMoreGeneralRoutes(router.specs, newSpec.method, newSpec.route);
     }
-    if (opts.needsAuthorization && !router.handleAuthorization) {
-      throw new Error(
-        "Can't check authorization without authorization function"
-      );
-    }
 
-    const internalSpec: InternalSpec<Params> = {
+    const internalSpec: InternalSpec<Context, Params, Token> = {
       route: newSpec.route,
       method: newSpec.method,
       body: newSpec.body,
       returns: newSpec.returns,
       needsAuthorization: opts.needsAuthorization,
-      tags: opts.tags,
+      tags: opts.tags || [],
       run: function (
         runOpts: RunOptions,
         req: ServerRequest,
@@ -520,60 +533,110 @@ export class Router<Context, LoginToken> {
         // Initially, it was the other way around. But this caused problems as the authFunc is/can be async. So
         //   we might miss out on "data" and "end" events on the request while we're running the authFunc, as the
         //   event handlers are only set up in .getBody()
-        router.getBody(
-          newSpec.body,
-          req,
-          res,
-          function continueWithBody(b: Body) {
-            router.handleAuthorization<NeedsAuth>(
-              runOpts.redirectOnUnauthorizedPage,
-              opts.needsAuthorization,
-              req,
-              res,
-              opts.allowRedirectionToDefault ?? true,
-              function continueWithTokenAndBody(
-                t: NeedsAuth extends true ? LoginToken : null
-              ): void {
-                // const start = process.hrtime();
-                run(router.context, p, b, t, req, res)
-                  // .then(function () {
-                  //   const end = process.hrtime();
-                  //   const duration =
-                  //     (end[0] - start[0]) * 1000 +
-                  //     Math.floor((end[1] - start[1]) / 1_000_000);
-                  //   console.log(`Handled request in ${duration} milliseconds`);
-                  // })
-                  .catch(function (error) {
-                    const returnCode =
-                      error &&
-                      error instanceof HTTPError &&
-                      error.httpReturnCode >= 100 &&
-                      error.httpReturnCode < 600
-                        ? error.httpReturnCode
-                        : 500;
-                    res.writeHead(returnCode, {
-                      "Content-Type": "text/plain",
-                    });
-                    res.write("Server error: " + error);
+        router.getBody(newSpec.body, req, res, function (b: Body) {
+          const authP: Promise<
+            Either<
+              | string
+              | { tag: "redirect"; redirectUrl: string }
+              | [number, OutgoingHttpHeaders],
+              NeedsAuth extends null ? null : Token
+            >
+          > =
+            opts.needsAuthorization === null
+              ? Promise.resolve(
+                  Right(null) as Either<
+                    | string
+                    | { tag: "redirect"; redirectUrl: string }
+                    | [number, OutgoingHttpHeaders],
+                    NeedsAuth extends null ? null : Token
+                  >
+                )
+              : (opts.needsAuthorization(req, router.context) as Promise<
+                  Either<
+                    | string
+                    | { tag: "redirect"; redirectUrl: string }
+                    | [number, OutgoingHttpHeaders],
+                    NeedsAuth extends null ? null : Token
+                  >
+                >);
+
+          authP.then(
+            (token) => {
+              token.caseOf({
+                Left: (error) => {
+                  if (typeof error === "string") {
+                    res.writeHead(401, { "Content-Type": "text/plain" });
+                    res.write("Failed to authorize: " + error);
                     res.end();
-                    if (!runningInTest) {
-                      console.error("");
-                      console.error("Encountered error during run function.");
-                      console.error(`Incoming url: ${req.url}`);
-                      console.error(`Matched route: ${newSpec.route.__rawUrl}`);
-                      console.error(`Incoming body: ${JSON.stringify(b)}`);
-                      console.error(`Return code: ${returnCode}`);
-                      console.error(`Server error: ${error}`);
-                      if (error instanceof Error) {
-                        console.error(`Stacktrace: ${error.stack}`);
+                    return;
+                  } else if ("tag" in error) {
+                    res.writeHead(302, { Location: error.redirectUrl });
+                    res.end();
+                    return;
+                  } else {
+                    res.writeHead(error[0], error[1]);
+                    res.end();
+                    return;
+                  }
+                },
+                Right: (token) => {
+                  // const start = process.hrtime();
+                  run(router.context, p, b, token, req, res)
+                    // .then(function () {
+                    //   const end = process.hrtime();
+                    //   const duration =
+                    //     (end[0] - start[0]) * 1000 +
+                    //     Math.floor((end[1] - start[1]) / 1_000_000);
+                    //   console.log(`Handled request in ${duration} milliseconds`);
+                    // })
+                    .catch(function (error) {
+                      const returnCode =
+                        error &&
+                        error instanceof HTTPError &&
+                        error.httpReturnCode >= 100 &&
+                        error.httpReturnCode < 600
+                          ? error.httpReturnCode
+                          : 500;
+                      res.writeHead(returnCode, {
+                        "Content-Type": "text/plain",
+                      });
+                      res.write("Server error: " + error);
+                      res.end();
+                      if (!runningInTest) {
                         console.error("");
+                        console.error("Encountered error during run function.");
+                        console.error(`Incoming url: ${req.url}`);
+                        console.error(
+                          `Matched route: ${newSpec.route.__rawUrl}`
+                        );
+                        console.error(`Incoming body: ${JSON.stringify(b)}`);
+                        console.error(`Return code: ${returnCode}`);
+                        console.error(`Server error: ${error}`);
+                        if (error instanceof Error) {
+                          console.error(`Stacktrace: ${error.stack}`);
+                          console.error("");
+                        }
                       }
-                    }
-                  });
+                    });
+                },
+              });
+            },
+            (err) => {
+              res.writeHead(500, { "Content-Type": "text/plain" });
+              res.write("Server error: " + err);
+              res.end();
+              console.error(
+                "Encountered error during run function of authorization."
+              );
+              console.error(`Incoming url: ${req.url}`);
+              console.error(`Headers: ${JSON.stringify(req.headers)}`);
+              console.error(`Server error: ${err}`);
+              if ("detail" in err) {
+                console.error(`Error detail: ${err.detail}`);
               }
-            );
-          }
-        );
+            }
+          );
+        });
       },
     };
 
@@ -669,7 +732,7 @@ export class Router<Context, LoginToken> {
     }
   }
 
-  getInternalSpecs(): InternalSpec<any>[] {
+  getInternalSpecs(): InternalSpec<any, any, any>[] {
     return this.specs;
   }
 }

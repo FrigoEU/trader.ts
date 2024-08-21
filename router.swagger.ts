@@ -4,12 +4,12 @@ import { InternalSpec, Router } from "./router";
 
 // This is async because this stupid @openapi-contrib/json-schema-to-openapi-schema
 //   module works async...
-export async function genSwagger(router: Router<any, any>) {
+export async function genSwagger(router: Router<any>) {
   return genSwaggerF(router.getInternalSpecs());
 }
 
 async function genSwaggerF(
-  specs: InternalSpec<any>[]
+  specs: InternalSpec<any, any, any>[]
 ): Promise<OpenAPIV3.Document> {
   // https://github.com/kogosoftwarellc/open-api/blob/master/packages/openapi-types/index.ts
   // https://swagger.io/docs/specification/basic-structure/
