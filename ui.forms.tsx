@@ -21,23 +21,25 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
     };
   };
 
-  constructor(fs: {
-    [fieldName in keyof ParsedScope]: {
-      dependsOn: (keyof ParsedScope)[];
-      calc: (deps: any /* temp */) => Promise<Field<any>>;
-    };
-  }) {
+  constructor(
+    fs: {
+      [fieldName in keyof ParsedScope]: {
+        dependsOn: (keyof ParsedScope)[];
+        calc: (deps: any /* temp */) => Promise<Field<any>>;
+      };
+    }
+  ) {
     this.fieldCalculators = fs;
   }
 
   public addField<
     MyFieldName extends string,
     MyField extends Field<any>,
-    DependsOn extends keyof ParsedScope,
+    DependsOn extends keyof ParsedScope
   >(
     fieldName: MyFieldName,
     dependsOn: DependsOn[],
-    fd: (deps: { [dep in DependsOn]: ParsedScope[dep] }) => Promise<MyField>,
+    fd: (deps: { [dep in DependsOn]: ParsedScope[dep] }) => Promise<MyField>
   ): Form<ParsedScope & { [fn in MyFieldName]: getParsedFromField<MyField> }> {
     return new Form<
       ParsedScope & { [fn in MyFieldName]: getParsedFromField<MyField> }
@@ -51,9 +53,11 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   }
 
   public build(opts?: {
-    render: (preRendered: {
-      [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
-    }) => HTMLElement | HTMLElement[];
+    render: (
+      preRendered: {
+        [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
+      }
+    ) => HTMLElement | HTMLElement[];
   }): Field<ParsedScope> {
     const cleanups: (() => void)[] = [];
     const self = this;
@@ -74,19 +78,18 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
     for (let fieldName of fieldNames) {
       // Setting up a collection of sources where we always have the current "Parsing" value of each field
-      const currentStatusS: (typeof currentStatusOfFieldsS)[typeof fieldName] =
-        {
-          source: new Source({
-            tag: "loading",
-          }),
-          field: new Source(null),
-          cleanups: [],
-        };
+      const currentStatusS: typeof currentStatusOfFieldsS[typeof fieldName] = {
+        source: new Source({
+          tag: "loading",
+        }),
+        field: new Source(null),
+        cleanups: [],
+      };
       currentStatusOfFieldsS[fieldName] = currentStatusS;
 
       // Whenever these change -> update the main source
       cleanups.push(
-        currentStatusS.source.observe(recalcMainSource), // TODO optim this so we don't always need to iterate through every field? Fairly complicated
+        currentStatusS.source.observe(recalcMainSource) // TODO optim this so we don't always need to iterate through every field? Fairly complicated
       );
 
       // For every field that is observing this field -> trigger recalculation when this one changes
@@ -94,7 +97,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         const fieldCalc2 = this.fieldCalculators[fieldName2];
         if (fieldCalc2.dependsOn.includes(fieldName)) {
           cleanups.push(
-            currentStatusS.source.observe(() => runFieldCalc(fieldName2)),
+            currentStatusS.source.observe(() => runFieldCalc(fieldName2))
           );
         }
       }
@@ -124,16 +127,14 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
             // "Forward"ing source
             curr.source.set(field.s.get());
             curr.cleanups.push(
-              field.s.observe((parsingVal) => curr.source.set(parsingVal)),
+              field.s.observe((parsingVal) => curr.source.set(parsingVal))
             );
 
             // Adding cleanup of field to our cleanups
             curr.cleanups.push(field.cleanup);
           } else {
             log(
-              `Loaded field ${String(
-                fieldName,
-              )} but no longer in loading state`,
+              `Loaded field ${String(fieldName)} but no longer in loading state`
             );
           }
         });
@@ -203,8 +204,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         scheduleForCleanup(
           mainSource.observe((parsing) => {
             if (parsing.tag === "parsed") {
-              const currentFullValueFromFields =
-                recalcMainSourceImplementation();
+              const currentFullValueFromFields = recalcMainSourceImplementation();
               if (equals(parsing, currentFullValueFromFields)) {
                 // do nothing
               } else {
@@ -217,7 +217,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
                 }
               }
             }
-          }),
+          })
         );
         // TODO: setup/cleanup sequence is not OK
         const customRenderFunc = opts?.render || null;
@@ -232,7 +232,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
                 } else {
                   return field.render();
                 }
-              }),
+              })
             );
           }
           return renderedFields.flat();
@@ -274,11 +274,11 @@ export function textBox(opts: {
       : {
           tag: "parsed",
           parsed: initialVal,
-        },
+        }
   );
 
   function parse(
-    raw: string,
+    raw: string
   ): { tag: "parsed"; parsed: string } | { tag: "err" } {
     if (opts.mandatory === true && raw.trim() === "") {
       return { tag: "err" };
@@ -323,7 +323,7 @@ export function timeBox(opts: {
       ? { tag: "parsed", parsed: opts.initialVal }
       : {
           tag: "initial",
-        },
+        }
   );
 
   function parse(raw: string): Parsing<joda.LocalTime> {
@@ -346,8 +346,8 @@ export function timeBox(opts: {
     if (opts.previewS) {
       scheduleForCleanup(
         parsedS.observe((s) =>
-          s.tag === "parsed" ? opts.previewS!.set(s.parsed) : {},
-        ),
+          s.tag === "parsed" ? opts.previewS!.set(s.parsed) : {}
+        )
       );
     }
 
@@ -380,7 +380,7 @@ export function dateBox(opts: {
       ? { tag: "parsed", parsed: opts.initialVal }
       : {
           tag: "initial",
-        },
+        }
   );
 
   function parse(raw: string): joda.LocalDate | undefined {
@@ -392,20 +392,21 @@ export function dateBox(opts: {
     }
   }
 
+  syncRawAndParsing({
+    rawS,
+    parsingS,
+    parse,
+    parsedToRaw: (r) => {
+      return r.toString();
+    },
+  });
+
   function render() {
     if (opts.onChange) {
       parsingS.observe((s) =>
-        s.tag === "parsed" ? opts.onChange!(s.parsed) : {},
+        s.tag === "parsed" ? opts.onChange!(s.parsed) : {}
       );
     }
-    syncRawAndParsing({
-      rawS,
-      parsingS,
-      parse,
-      parsedToRaw: (r) => {
-        return r.toString();
-      },
-    });
     return standardinputs.textbox({
       ...opts,
       required: true,
@@ -423,7 +424,7 @@ export function dateBox(opts: {
 
 export function constantField<T>(
   val: T,
-  opts?: { render?: HTMLElement | HTMLElement[] },
+  opts?: { render?: HTMLElement | HTMLElement[] }
 ): Promise<Field<T>> {
   return Promise.resolve({
     s: new Source({ tag: "parsed", parsed: val }),
@@ -446,7 +447,7 @@ export function checkBox(opts: {
   });
 
   function parse(
-    raw: boolean,
+    raw: boolean
   ): { tag: "parsed"; parsed: boolean } | { tag: "err" } {
     return { tag: "parsed", parsed: raw };
   }
@@ -475,18 +476,18 @@ export function numberBox(
     label?: string;
     constraint?: "positive" | "negative";
     constraintLabel?: string;
-  },
+  }
 ): Promise<Field<number>> {
   const rawS = new Source(initialVal?.toString() || "");
 
   const parsedS: Source<Parsing<number>> = new Source(
     initialVal !== undefined
       ? { tag: "parsed", parsed: initialVal }
-      : { tag: "initial" },
+      : { tag: "initial" }
   );
 
   function parse(
-    raw: string,
+    raw: string
   ): { tag: "parsed"; parsed: number } | { tag: "err"; label?: string } {
     try {
       const parsed = parseFloat(raw);
@@ -555,7 +556,7 @@ export function selectBox<T>(
       groupnames: string[];
       assignToGroup: (t: T) => string;
     };
-  },
+  }
 ): Promise<Field<T>> {
   const lsKey = opts?.saveAndLoadInitialValToLocalStorage
     ? "trader_forms_selectbox_" + opts.saveAndLoadInitialValToLocalStorage
@@ -567,7 +568,6 @@ export function selectBox<T>(
     : !isNil(initial_)
     ? show(initial_)
     : null;
-  const rawS: Source<string> = new Source(initial || "");
 
   const initialFound = options.find((opt) => show(opt) === initial);
   const initialParsed =
@@ -582,6 +582,9 @@ export function selectBox<T>(
       : { tag: "initial" as const };
 
   const parsedS: Source<Parsing<T>> = new Source(initialParsed);
+  const rawS: Source<string> = new Source(
+    initialParsed.tag === "parsed" ? show(initialParsed.parsed) : ""
+  );
 
   function parse(raw: string): T | undefined {
     try {
@@ -596,17 +599,19 @@ export function selectBox<T>(
     }
   }
 
-  function render() {
-    if (opts?.previewS) {
-      scheduleForCleanup(
-        parsedS.observe((s) => {
-          if (s.tag === "parsed") {
-            opts!.previewS!.set(s.parsed as T);
-          }
-        }),
-      );
-    }
+  if (opts?.previewS) {
+    scheduleForCleanup(
+      parsedS.observe((s) => {
+        if (s.tag === "parsed") {
+          opts!.previewS!.set(s.parsed as T);
+        }
+      })
+    );
+  }
 
+  syncRawAndParsing({ rawS, parsingS: parsedS, parse, parsedToRaw: show });
+
+  function render() {
     function renderOpt(opt: T) {
       return (
         <option
@@ -633,12 +638,12 @@ export function selectBox<T>(
         {initial === null || initial === undefined ? (
           <option value=""></option>
         ) : (
-          (null as unknown as HTMLOptionElement)
+          ((null as unknown) as HTMLOptionElement)
         )}
         {opts && opts.groups
           ? mapPartial(opts.groups.groupnames, (groupname) => {
               const optionsForGroup = options.filter(
-                (opt) => opts.groups!.assignToGroup(opt) === groupname,
+                (opt) => opts.groups!.assignToGroup(opt) === groupname
               );
               if (optionsForGroup.length === 0) {
                 return null;
@@ -658,9 +663,7 @@ export function selectBox<T>(
       </select>
     ) as HTMLInputElement;
 
-    if (!isNil(initialFound)) {
-      i.value = show(initialFound);
-    }
+    i.value = rawS.get();
 
     i.oninput = () => {
       rawS.set(i.value);
@@ -668,8 +671,6 @@ export function selectBox<T>(
         localStorage.setItem(lsKey, i.value);
       }
     };
-
-    syncRawAndParsing({ rawS, parsingS: parsedS, parse, parsedToRaw: show });
 
     return opts?.label ? (
       <label>
@@ -695,7 +696,7 @@ export function multiSelectbox<T>(
   opts?: {
     label?: string;
     textIfNothingSelected?: string;
-  },
+  }
 ): Promise<Field<T[]>> {
   const rawS: Source<string[]> = new Source(initial.map((opt) => show(opt)));
 
@@ -705,7 +706,7 @@ export function multiSelectbox<T>(
   });
 
   function parse(
-    raw: string[],
+    raw: string[]
   ): { tag: "parsed"; parsed: T[] } | { tag: "err" } {
     try {
       let parsed = [];
@@ -782,7 +783,7 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
       } else {
         opts.parsingS.set({ tag: "err" });
       }
-    }),
+    })
   );
 
   scheduleForCleanup(
@@ -794,7 +795,7 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
           opts.rawS.set(newRaw);
         }
       }
-    }),
+    })
   );
 }
 
