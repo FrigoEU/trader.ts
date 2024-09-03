@@ -314,6 +314,7 @@ export function textBox(opts: {
       (parsed) => (parsed.tag === "err" ? "has_error" : ""),
       standardinputs.textbox({
         ...opts,
+        trackUserTyping: opts.mandatory || (opts.validations || []).length > 0,
         required: opts.mandatory,
         source: rawS,
         label: opts.label,

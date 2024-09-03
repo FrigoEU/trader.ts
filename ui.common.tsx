@@ -1,7 +1,8 @@
 import h from "trader-hyperscript";
 import type { Remote } from "./types/remote";
 import { Source } from "./types/source";
-import { dyn, scheduleForCleanup } from "./ui";
+import { debounce } from "./lib/debounce";
+import { dyn, dynClass, scheduleForCleanup } from "./ui";
 import * as joda from "@js-joda/core";
 
 export function errorMessage(
@@ -103,6 +104,7 @@ export function renderIf(
 
 export function textbox(opts: {
   source: Source<string>;
+  trackUserTyping?: boolean;
   error?: Source<string | null>;
   class?: string;
   type?: string;
@@ -112,26 +114,45 @@ export function textbox(opts: {
   id?: string;
   required?: boolean;
 }) {
-  const i = (opts.type === "textarea" ? (
-    <textarea
-      className={opts.class || ""}
-      style={opts.style || ""}
-      value={opts.source.get()}
-      placeholder={opts.placeholder || ""}
-      id={opts.id || ""}
-    />
-  ) : (
-    <input
-      type={opts.type || "text"}
-      style={opts.style || ""}
-      className={opts.class || ""}
-      value={opts.source.get()}
-      placeholder={opts.placeholder || ""}
-      required={opts.required || undefined}
-      id={opts.id || ""}
-    />
-  )) as HTMLInputElement;
+  const userIsTypingS = new Source(false);
+  const i_orig =
+    opts.type === "textarea"
+      ? ((
+          <textarea
+            className={opts.class || ""}
+            style={opts.style || ""}
+            value={opts.source.get()}
+            placeholder={opts.placeholder || ""}
+            id={opts.id || ""}
+          />
+        ) as HTMLInputElement)
+      : ((
+          <input
+            type={opts.type || "text"}
+            style={opts.style || ""}
+            className={opts.class || ""}
+            value={opts.source.get()}
+            placeholder={opts.placeholder || ""}
+            required={opts.required || undefined}
+            id={opts.id || ""}
+          />
+        ) as HTMLInputElement);
+  const i = opts.trackUserTyping
+    ? (dynClass(
+        userIsTypingS,
+        (typing) => (typing ? "user_is_typing" : ""),
+        i_orig
+      ) as HTMLInputElement)
+    : i_orig;
   i.oninput = () => opts.source.set(i.value);
+
+  const userStoppedTypingDebounced = debounce(function userStoppedTyping() {
+    userIsTypingS.set(false);
+  }, 1500);
+  i.onkeydown = () => {
+    userIsTypingS.set(true);
+    userStoppedTypingDebounced();
+  };
   scheduleForCleanup(
     opts.source.observe((v) => {
       i.value = v;
