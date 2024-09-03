@@ -264,6 +264,9 @@ export function textBox(opts: {
   label?: string;
   style?: string;
   class?: string;
+  validations?: ((
+    s: string
+  ) => { tag: "err" } | { tag: "parsed"; parsed: string })[];
 }): Promise<Field<string>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
@@ -277,14 +280,28 @@ export function textBox(opts: {
         }
   );
 
-  function parse(
-    raw: string
-  ): { tag: "parsed"; parsed: string } | { tag: "err" } {
-    if (opts.mandatory === true && raw.trim() === "") {
-      return { tag: "err" };
+  function mandatoryValidation(s: string) {
+    if (opts.mandatory === true && s.trim() === "") {
+      return { tag: "err" as const };
     } else {
-      return { tag: "parsed", parsed: raw };
+      return { tag: "parsed" as const, parsed: s };
     }
+  }
+
+  function parse(
+    s: string
+  ): { tag: "parsed"; parsed: string } | { tag: "err" } {
+    const allValidations = [mandatoryValidation].concat(opts.validations || []);
+    let currentValue = s;
+    for (let validation of allValidations) {
+      const res = validation(currentValue);
+      if (res.tag === "err") {
+        return res;
+      } else {
+        currentValue = res.parsed;
+      }
+    }
+    return { tag: "parsed", parsed: currentValue };
   }
 
   const cleanup = rawS.observe((raw) => {
