@@ -1,6 +1,6 @@
 import h from "trader-hyperscript";
 import { Source } from "./types/source";
-import { dyn, scheduleForCleanup } from "./ui";
+import { dyn, dynClass, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
 import { equals } from "rambda";
 import * as joda from "@js-joda/core";
@@ -309,12 +309,16 @@ export function textBox(opts: {
   });
 
   function render() {
-    return standardinputs.textbox({
-      ...opts,
-      required: opts.mandatory,
-      source: rawS,
-      label: opts.label,
-    });
+    return dynClass(
+      parsedS,
+      (parsed) => (parsed.tag === "err" ? "has_error" : ""),
+      standardinputs.textbox({
+        ...opts,
+        required: opts.mandatory,
+        source: rawS,
+        label: opts.label,
+      })
+    );
   }
 
   return Promise.resolve({
