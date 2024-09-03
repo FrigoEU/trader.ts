@@ -280,28 +280,28 @@ export function textBox(opts: {
         }
   );
 
-  function mandatoryValidation(s: string) {
-    if (opts.mandatory === true && s.trim() === "") {
-      return { tag: "err" as const };
-    } else {
-      return { tag: "parsed" as const, parsed: s };
-    }
-  }
-
   function parse(
     s: string
   ): { tag: "parsed"; parsed: string } | { tag: "err" } {
-    const allValidations = [mandatoryValidation].concat(opts.validations || []);
-    let currentValue = s;
-    for (let validation of allValidations) {
-      const res = validation(currentValue);
-      if (res.tag === "err") {
-        return res;
+    if (s.trim() === "") {
+      if (opts.mandatory === true) {
+        return { tag: "err" as const };
       } else {
-        currentValue = res.parsed;
+        return { tag: "parsed", parsed: s };
       }
+    } else {
+      const allValidations = opts.validations || [];
+      let currentValue = s;
+      for (let validation of allValidations) {
+        const res = validation(currentValue);
+        if (res.tag === "err") {
+          return res;
+        } else {
+          currentValue = res.parsed;
+        }
+      }
+      return { tag: "parsed", parsed: currentValue };
     }
-    return { tag: "parsed", parsed: currentValue };
   }
 
   const cleanup = rawS.observe((raw) => {
