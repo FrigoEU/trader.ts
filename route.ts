@@ -30,7 +30,12 @@ type CompactIntersection<A, B> = A extends void ? B : A & B;
 type TypeMappingSafer<
   TypeMapping,
   T extends string
-> = T extends keyof TypeMapping ? TypeMapping[T] : unknown;
+> = T extends keyof TypeMapping ? TypeMapping[T] : never;
+
+type TypeMappingSaferOptional<
+  TypeMapping,
+  T extends string
+> = T extends keyof TypeMapping ? TypeMapping[T] | undefined : never;
 
 type ExtractRouteParams<
   T extends string,
@@ -58,16 +63,18 @@ type ExtractQueryParams<
   ? CompactIntersection<
       ExtractQueryParams<Rest, ExtraMapping>,
       {
-        [k in Param]:
-          | TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>
-          | undefined;
+        [k in Param]: TypeMappingSaferOptional<
+          BuiltinTypeMapping & ExtraMapping,
+          Typ
+        >;
       }
     >
   : T extends `{${infer Param}:${infer Typ}}`
   ? {
-      [k in Param]:
-        | TypeMappingSafer<BuiltinTypeMapping & ExtraMapping, Typ>
-        | undefined;
+      [k in Param]: TypeMappingSaferOptional<
+        BuiltinTypeMapping & ExtraMapping,
+        Typ
+      >;
     }
   : void;
 
