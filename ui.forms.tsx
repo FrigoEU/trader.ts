@@ -651,7 +651,9 @@ export function selectBox<T>(
       );
     }
 
-    const i = (
+    const i = dynClass(
+      parsedS,
+      (parsed) => (parsed.tag === "err" ? "has_error" : ""),
       <select
         value={rawS.get()}
         style={opts?.style || ""}
