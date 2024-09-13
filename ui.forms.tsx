@@ -309,9 +309,8 @@ export function textBox(opts: {
   });
 
   function render() {
-    return dynClass(
+    return wrapInputWithHasErrorDynClass(
       parsedS,
-      (parsed) => (parsed.tag === "err" ? "has_error" : ""),
       standardinputs.textbox({
         ...opts,
         trackUserTyping: opts.mandatory || (opts.validations || []).length > 0,
@@ -373,11 +372,14 @@ export function timeBox(opts: {
       );
     }
 
-    return standardinputs.textbox({
-      ...opts,
-      source: rawS,
-      type: "time",
-    });
+    return wrapInputWithHasErrorDynClass(
+      parsedS,
+      standardinputs.textbox({
+        ...opts,
+        source: rawS,
+        type: "time",
+      })
+    );
   }
 
   return Promise.resolve({
@@ -429,12 +431,15 @@ export function dateBox(opts: {
         s.tag === "parsed" ? opts.onChange!(s.parsed) : {}
       );
     }
-    return standardinputs.textbox({
-      ...opts,
-      required: true,
-      source: rawS,
-      type: "date",
-    });
+    return wrapInputWithHasErrorDynClass(
+      parsingS,
+      standardinputs.textbox({
+        ...opts,
+        required: true,
+        source: rawS,
+        type: "date",
+      })
+    );
   }
 
   return Promise.resolve({
@@ -544,7 +549,10 @@ export function numberBox(
   });
 
   function render() {
-    const i = (<input type="number" value={rawS.get()} />) as HTMLInputElement;
+    const i = wrapInputWithHasErrorDynClass(
+      parsedS,
+      (<input type="number" value={rawS.get()} />) as HTMLInputElement
+    );
     i.oninput = () => rawS.set(i.value);
     return opts?.label ? (
       <label>
@@ -651,41 +659,42 @@ export function selectBox<T>(
       );
     }
 
-    const i = dynClass(
+    const i = wrapInputWithHasErrorDynClass(
       parsedS,
-      (parsed) => (parsed.tag === "err" ? "has_error" : ""),
-      <select
-        value={rawS.get()}
-        style={opts?.style || ""}
-        className={opts?.class || ""}
-      >
-        {initial === null || initial === undefined ? (
-          <option value=""></option>
-        ) : (
-          ((null as unknown) as HTMLOptionElement)
-        )}
-        {opts && opts.groups
-          ? mapPartial(opts.groups.groupnames, (groupname) => {
-              const optionsForGroup = options.filter(
-                (opt) => opts.groups!.assignToGroup(opt) === groupname
-              );
-              if (optionsForGroup.length === 0) {
-                return null;
-              } else {
-                if (groupname === "") {
-                  return optionsForGroup.map(renderOpt);
+      (
+        <select
+          value={rawS.get()}
+          style={opts?.style || ""}
+          className={opts?.class || ""}
+        >
+          {initial === null || initial === undefined ? (
+            <option value=""></option>
+          ) : (
+            ((null as unknown) as HTMLOptionElement)
+          )}
+          {opts && opts.groups
+            ? mapPartial(opts.groups.groupnames, (groupname) => {
+                const optionsForGroup = options.filter(
+                  (opt) => opts.groups!.assignToGroup(opt) === groupname
+                );
+                if (optionsForGroup.length === 0) {
+                  return null;
                 } else {
-                  return (
-                    <optgroup label={groupname}>
-                      {optionsForGroup.map(renderOpt)}
-                    </optgroup>
-                  );
+                  if (groupname === "") {
+                    return optionsForGroup.map(renderOpt);
+                  } else {
+                    return (
+                      <optgroup label={groupname}>
+                        {optionsForGroup.map(renderOpt)}
+                      </optgroup>
+                    );
+                  }
                 }
-              }
-            })
-          : options.map(renderOpt)}
-      </select>
-    ) as HTMLInputElement;
+              })
+            : options.map(renderOpt)}
+        </select>
+      ) as HTMLInputElement
+    );
 
     i.value = rawS.get();
 
@@ -825,4 +834,15 @@ export function syncRawAndParsing<Raw, Parsed>(opts: {
 
 function isNil(value: any): value is null | undefined {
   return value === null || value === undefined;
+}
+
+function wrapInputWithHasErrorDynClass<T, H extends HTMLElement>(
+  parsedS: Source<Parsing<T>>,
+  i: H
+) {
+  return dynClass(
+    parsedS,
+    (parsed) => (parsed.tag === "err" ? "has_error" : ""),
+    i
+  ) as HTMLInputElement;
 }
