@@ -513,35 +513,90 @@ export function numberBox(
       : { tag: "initial" }
   );
 
-  function parse(
-    raw: string
-  ): { tag: "parsed"; parsed: number } | { tag: "err"; label?: string } {
-    try {
-      const parsed = parseFloat(raw);
-      if (!isNaN(parsed)) {
-        if (
-          opts &&
-          opts.constraint &&
-          opts.constraint === "positive" &&
-          parsed < 0
-        ) {
-          return { tag: "err", label: opts.constraintLabel || "" };
-        }
-        if (
-          opts &&
-          opts.constraint &&
-          opts.constraint === "negative" &&
-          parsed > 0
-        ) {
-          return { tag: "err", label: opts.constraintLabel || "" };
-        }
-        return { tag: "parsed", parsed };
-      } else {
-        return { tag: "err" };
+  const cleanup = rawS.observe((raw) => {
+    parsedS.set(parseNumberInput(raw, opts));
+  });
+
+  function render() {
+    const i = wrapInputWithHasErrorDynClass(
+      parsedS,
+      (<input type="number" value={rawS.get()} />) as HTMLInputElement
+    );
+    i.oninput = () => rawS.set(i.value);
+    return opts?.label ? (
+      <label>
+        <div className="label-text">{opts.label}</div>
+        {i}
+      </label>
+    ) : (
+      i
+    );
+  }
+
+  return Promise.resolve({
+    s: parsedS,
+    cleanup,
+    render,
+  });
+}
+
+function parseNumberInput(
+  raw: string,
+  opts?: {
+    constraint?: "positive" | "negative";
+    constraintLabel?: string;
+  }
+): { tag: "parsed"; parsed: number } | { tag: "err"; label?: string } {
+  try {
+    const parsed = parseFloat(raw);
+    if (!isNaN(parsed)) {
+      if (
+        opts &&
+        opts.constraint &&
+        opts.constraint === "positive" &&
+        parsed < 0
+      ) {
+        return { tag: "err", label: opts.constraintLabel || "" };
       }
-    } catch {
+      if (
+        opts &&
+        opts.constraint &&
+        opts.constraint === "negative" &&
+        parsed > 0
+      ) {
+        return { tag: "err", label: opts.constraintLabel || "" };
+      }
+      return { tag: "parsed", parsed };
+    } else {
       return { tag: "err" };
     }
+  } catch {
+    return { tag: "err" };
+  }
+}
+
+export function numberBoxOptional(
+  initialVal: number | null,
+  opts?: {
+    label?: string;
+    constraint?: "positive" | "negative";
+    constraintLabel?: string;
+  }
+): Promise<Field<number | null>> {
+  const rawS = new Source(initialVal?.toString() || "");
+
+  const parsedS: Source<Parsing<number | null>> = new Source({
+    tag: "parsed",
+    parsed: initialVal,
+  });
+
+  function parse(
+    raw: string
+  ): { tag: "parsed"; parsed: number | null } | { tag: "err"; label?: string } {
+    if (raw.trim() === "") {
+      return { tag: "parsed", parsed: null };
+    }
+    return parseNumberInput(raw, opts);
   }
 
   const cleanup = rawS.observe((raw) => {
