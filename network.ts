@@ -13,10 +13,15 @@ export function rpc<Parameters, Body, Returns>(
   opts?: { timeoutMS?: number }
 ): Promise<Returns> {
   const url = spec.route.link(params);
-  const fetchP = fetch(url, {
+
+  const controller = new AbortController();
+  setTimeout(() => controller.abort(), opts?.timeoutMS || timeoutMS);
+
+  return fetch(url, {
     method: spec.method,
     body: spec.body === null ? undefined : spec.body.encode(b),
     credentials: "include",
+    signal: controller.signal,
   }).then(
     (res): Promise<Returns> => {
       if (res.status === 200) {
@@ -51,11 +56,4 @@ export function rpc<Parameters, Body, Returns>(
       }
     }
   );
-  const timeoutP: Promise<Returns> = new Promise((_, reject) =>
-    setTimeout(
-      () => reject(new Error("Failed to contact server: timeout")),
-      opts?.timeoutMS || timeoutMS
-    )
-  );
-  return Promise.race([fetchP, timeoutP]);
 }
