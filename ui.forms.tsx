@@ -465,6 +465,7 @@ export function checkBox(opts: {
   label: string;
   style?: string;
   class?: string;
+  disabled?: boolean;
 }): Promise<Field<boolean>> {
   const rawS = new Source(opts.initialVal);
 
