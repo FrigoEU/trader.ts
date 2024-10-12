@@ -4,7 +4,7 @@ import { dyn, dynClass, scheduleForCleanup } from "./ui";
 import * as standardinputs from "./ui.common";
 import { equals } from "rambda";
 import * as joda from "@js-joda/core";
-import { mapPartial } from "./utils";
+import { checkAllCasesHandled, mapPartial } from "./utils";
 
 const DEBUG = false;
 function log(s: string) {
@@ -407,10 +407,12 @@ export function dateBox(opts: {
         }
   );
 
-  function parse(raw: string): joda.LocalDate | undefined {
+  function parse(
+    raw: string
+  ): { tag: "parsed"; parsed: joda.LocalDate } | undefined {
     try {
       const parsed = joda.LocalDate.parse(raw);
-      return parsed;
+      return { tag: "parsed", parsed };
     } catch {
       return undefined;
     }
@@ -514,10 +516,6 @@ export function numberBox(
       : { tag: "initial" }
   );
 
-  const cleanup = rawS.observe((raw) => {
-    parsedS.set(parseNumberInput(raw, opts));
-  });
-
   function render() {
     const i = wrapInputWithHasErrorDynClass(
       parsedS,
@@ -534,9 +532,18 @@ export function numberBox(
     );
   }
 
+  syncRawAndParsing({
+    rawS,
+    parsingS: parsedS,
+    parse: (n) => {
+      return parseNumberInput(n);
+    },
+    parsedToRaw: (n) => n.toString(),
+  });
+
   return Promise.resolve({
     s: parsedS,
-    cleanup,
+    cleanup: () => {},
     render,
   });
 }
@@ -672,11 +679,11 @@ export function selectBox<T>(
     initialParsed.tag === "parsed" ? show(initialParsed.parsed) : ""
   );
 
-  function parse(raw: string): T | undefined {
+  function parse(raw: string): { tag: "parsed"; parsed: T } | undefined {
     try {
       const parsed = options.find((opt) => show(opt) === raw);
       if (parsed !== undefined) {
-        return parsed;
+        return { tag: "parsed", parsed };
       } else {
         return undefined;
       }
@@ -857,20 +864,28 @@ export function object_keys<T extends object>(obj: T): Array<keyof T> {
 export function syncRawAndParsing<Raw, Parsed>(opts: {
   rawS: Source<Raw>;
   parsingS: Source<Parsing<Parsed>>;
-  parse: (raw: Raw) => undefined | Parsed;
+  parse: (
+    raw: Raw
+  ) =>
+    | undefined
+    | { tag: "parsed"; parsed: Parsed }
+    | { tag: "err"; label?: string };
   parsedToRaw: (parsed: Parsed) => Raw;
 }) {
   scheduleForCleanup(
     opts.rawS.observe((raw) => {
       const parsed = opts.parse(raw);
-      if (parsed !== undefined) {
-        const newParsing = { tag: "parsed" as const, parsed };
+      if (parsed === undefined) {
+        opts.parsingS.set({ tag: "err" });
+      } else if (parsed.tag === "err") {
+        opts.parsingS.set(parsed);
+      } else if (parsed.tag === "parsed") {
         const currentParsing = opts.parsingS.get();
-        if (!equals(newParsing, currentParsing)) {
-          opts.parsingS.set(newParsing);
+        if (!equals(parsed, currentParsing)) {
+          opts.parsingS.set(parsed);
         }
       } else {
-        opts.parsingS.set({ tag: "err" });
+        checkAllCasesHandled(parsed);
       }
     })
   );
