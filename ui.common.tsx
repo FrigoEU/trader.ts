@@ -123,7 +123,8 @@ export function textbox(opts: {
             style={opts.style || ""}
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
-            id={opts.id || ""}
+            required={opts.required || undefined}
+            id={opts.id || undefined}
           />
         ) as HTMLInputElement)
       : ((
@@ -134,7 +135,7 @@ export function textbox(opts: {
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
             required={opts.required || undefined}
-            id={opts.id || ""}
+            id={opts.id || undefined}
           />
         ) as HTMLInputElement);
   const i = opts.trackUserTyping
@@ -205,7 +206,7 @@ export function checkbox(opts: {
   return (
     <label className={opts.class || ""}>
       {i}
-      {opts.label || ""}
+      {opts.label ? <span>{opts.label}</span> : ""}
     </label>
   );
 }
