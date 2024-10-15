@@ -729,6 +729,7 @@ export function selectBox<T>(
           value={rawS.get()}
           style={opts?.style || ""}
           className={opts?.class || ""}
+          required={true}
         >
           {initial === null || initial === undefined ? (
             <option value=""></option>
