@@ -634,23 +634,21 @@ export function numberBoxOptional(
   });
 }
 
-export function selectBox<T>(
-  options: T[],
-  initial_: T | null | undefined,
-  show: (t: T) => string,
-  opts?: {
-    label?: string;
-    style?: string;
-    class?: string;
-    saveAndLoadInitialValToLocalStorage?: string;
-    previewS?: Source<T>;
-    isDisabled?: (t: T) => boolean;
-    groups?: {
-      groupnames: string[];
-      assignToGroup: (t: T) => string;
-    };
-  }
-): Promise<Field<T>> {
+export function selectBox<T>(opts: {
+  initial: T | null;
+  values: T[];
+  show: (t: T) => string;
+  label?: string;
+  style?: string;
+  class?: string;
+  saveAndLoadInitialValToLocalStorage?: string;
+  previewS?: Source<T>;
+  isDisabled?: (t: T) => boolean;
+  groups?: {
+    groupnames: string[];
+    assignToGroup: (t: T) => string;
+  };
+}): Promise<Field<T>> {
   const lsKey = opts?.saveAndLoadInitialValToLocalStorage
     ? "trader_forms_selectbox_" + opts.saveAndLoadInitialValToLocalStorage
     : null;
@@ -658,11 +656,11 @@ export function selectBox<T>(
   // We save the SHOWN value into LS, not the "identifier"
   const initial = !isNil(fromLs)
     ? fromLs
-    : !isNil(initial_)
-    ? show(initial_)
+    : !isNil(opts.initial)
+    ? opts.show(opts.initial)
     : null;
 
-  const initialFound = options.find((opt) => show(opt) === initial);
+  const initialFound = opts.values.find((opt) => opts.show(opt) === initial);
   const initialParsed =
     initialFound &&
     (isNil(opts) ||
@@ -676,12 +674,12 @@ export function selectBox<T>(
 
   const parsedS: Source<Parsing<T>> = new Source(initialParsed);
   const rawS: Source<string> = new Source(
-    initialParsed.tag === "parsed" ? show(initialParsed.parsed) : ""
+    initialParsed.tag === "parsed" ? opts.show(initialParsed.parsed) : ""
   );
 
   function parse(raw: string): { tag: "parsed"; parsed: T } | undefined {
     try {
-      const parsed = options.find((opt) => show(opt) === raw);
+      const parsed = opts.values.find((opt) => opts.show(opt) === raw);
       if (parsed !== undefined) {
         return { tag: "parsed", parsed };
       } else {
@@ -702,7 +700,7 @@ export function selectBox<T>(
     );
   }
 
-  syncRawAndParsing({ rawS, parsingS: parsedS, parse, parsedToRaw: show });
+  syncRawAndParsing({ rawS, parsingS: parsedS, parse, parsedToRaw: opts.show });
 
   function render() {
     function renderOpt(opt: T) {
@@ -715,9 +713,9 @@ export function selectBox<T>(
               ? false
               : true
           }
-          value={show(opt)}
+          value={opts.show(opt)}
         >
-          {show(opt)}
+          {opts.show(opt)}
         </option>
       );
     }
@@ -738,7 +736,7 @@ export function selectBox<T>(
           )}
           {opts && opts.groups
             ? mapPartial(opts.groups.groupnames, (groupname) => {
-                const optionsForGroup = options.filter(
+                const optionsForGroup = opts.values.filter(
                   (opt) => opts.groups!.assignToGroup(opt) === groupname
                 );
                 if (optionsForGroup.length === 0) {
@@ -755,7 +753,7 @@ export function selectBox<T>(
                   }
                 }
               })
-            : options.map(renderOpt)}
+            : opts.values.map(renderOpt)}
         </select>
       ) as HTMLInputElement
     );
