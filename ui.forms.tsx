@@ -458,7 +458,7 @@ export function constantField<T>(
   return Promise.resolve({
     s: new Source({ tag: "parsed", parsed: val }),
     cleanup: () => {},
-    render: () => opts?.render || <span></span>,
+    render: () => opts?.render || [],
   });
 }
 
