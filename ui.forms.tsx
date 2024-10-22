@@ -635,7 +635,7 @@ export function numberBoxOptional(
 }
 
 export function selectBox<T>(opts: {
-  initial: T | null;
+  initial: T | null | undefined;
   values: T[];
   show: (t: T) => string;
   label?: string;
