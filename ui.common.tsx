@@ -6,20 +6,41 @@ import { dyn, dynClass, scheduleForCleanup } from "./ui";
 import * as joda from "@js-joda/core";
 
 export function errorMessage(
-  errS: Source<string | null | undefined>,
+  errS:
+    | Source<string | null>
+    | Source<{ tag: "err"; label?: string } | unknown>,
   className?: string,
   style?: string
 ): HTMLElement[] {
-  return dyn(errS, function (errStr: string | null | undefined) {
-    return errStr ? (
-      <span className={"errormessage " + (className || "")} style={style}>
-        <i className="fas fa-exclamation" style="margin-right: 12px"></i>
-        {[errStr]}
-      </span>
-    ) : (
-      <span></span>
-    );
-  });
+  return dyn(
+    errS,
+    function (errStr: string | { tag: "err"; label?: string } | unknown) {
+      const toShow =
+        typeof errStr === "string" && errStr.length > 0
+          ? errStr
+          : typeof errStr === "object" &&
+            errStr &&
+            "tag" in errStr &&
+            errStr.tag === "err" &&
+            "label" in errStr &&
+            typeof errStr.label === "string" &&
+            errStr.label.length > 0
+          ? errStr.label
+          : null;
+      return toShow ? (
+        <span
+          className={"errormessage " + (className || "")}
+          style={style}
+          role="alert"
+        >
+          <i className="fas fa-exclamation" style="margin-right: 12px"></i>
+          {toShow}
+        </span>
+      ) : (
+        []
+      );
+    }
+  );
 }
 
 export function renderRemote<T>(
@@ -105,7 +126,9 @@ export function renderIf(
 export function textbox(opts: {
   source: Source<string>;
   trackUserTyping?: boolean;
-  error?: Source<string | null>;
+  error?:
+    | Source<string | null>
+    | Source<{ tag: "err"; label?: string } | unknown>;
   class?: string;
   type?: string;
   style?: string;
@@ -147,13 +170,15 @@ export function textbox(opts: {
     : i_orig;
   i.oninput = () => opts.source.set(i.value);
 
-  const userStoppedTypingDebounced = debounce(function userStoppedTyping() {
+  function userStoppedTyping() {
     userIsTypingS.set(false);
-  }, 1500);
+  }
+  const userStoppedTypingDebounced = debounce(userStoppedTyping, 1500);
   i.onkeydown = () => {
     userIsTypingS.set(true);
     userStoppedTypingDebounced();
   };
+  i.onblur = userStoppedTyping;
   scheduleForCleanup(
     opts.source.observe((v) => {
       i.value = v;
@@ -164,7 +189,10 @@ export function textbox(opts: {
 
 export function wrapWithLabel(
   l: string | undefined,
-  err: Source<string | null> | undefined,
+  err:
+    | undefined
+    | Source<string | null>
+    | Source<{ tag: "err"; label?: string } | unknown>,
   i: HTMLElement
 ): HTMLElement {
   return (

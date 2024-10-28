@@ -258,7 +258,6 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 }
 
 export function textBox(opts: {
-  mandatory?: boolean;
   initialVal?: string;
   type?: string;
   label?: string;
@@ -266,13 +265,14 @@ export function textBox(opts: {
   class?: string;
   validations?: ((
     s: string
-  ) => { tag: "err" } | { tag: "parsed"; parsed: string })[];
+  ) => { tag: "err"; label?: string } | { tag: "parsed"; parsed: string })[];
 }): Promise<Field<string>> {
   const rawS = new Source(opts.initialVal?.toString() || "");
 
   const initialVal = opts.initialVal || "";
   const parsedS: Source<Parsing<string>> = new Source(
-    opts.mandatory === true && initialVal.trim() === ""
+    initialVal.trim() === "" &&
+    (opts.validations || []).some((v) => v(initialVal.trim()).tag === "err")
       ? { tag: "initial" }
       : {
           tag: "parsed",
@@ -283,25 +283,17 @@ export function textBox(opts: {
   function parse(
     s: string
   ): { tag: "parsed"; parsed: string } | { tag: "err" } {
-    if (s.trim() === "") {
-      if (opts.mandatory === true) {
-        return { tag: "err" as const };
+    const allValidations = opts.validations || [];
+    let currentValue = s;
+    for (let validation of allValidations) {
+      const res = validation(currentValue);
+      if (res.tag === "err") {
+        return res;
       } else {
-        return { tag: "parsed", parsed: s };
+        currentValue = res.parsed;
       }
-    } else {
-      const allValidations = opts.validations || [];
-      let currentValue = s;
-      for (let validation of allValidations) {
-        const res = validation(currentValue);
-        if (res.tag === "err") {
-          return res;
-        } else {
-          currentValue = res.parsed;
-        }
-      }
-      return { tag: "parsed", parsed: currentValue };
     }
+    return { tag: "parsed", parsed: currentValue };
   }
 
   const cleanup = rawS.observe((raw) => {
@@ -313,8 +305,8 @@ export function textBox(opts: {
       parsedS,
       standardinputs.textbox({
         ...opts,
-        trackUserTyping: opts.mandatory || (opts.validations || []).length > 0,
-        required: opts.mandatory,
+        error: parsedS,
+        trackUserTyping: (opts.validations || []).length > 0,
         source: rawS,
         label: opts.label,
       })
@@ -767,14 +759,7 @@ export function selectBox<T>(opts: {
       }
     };
 
-    return opts?.label ? (
-      <label>
-        <div className="label-text">{opts.label}</div>
-        {i}
-      </label>
-    ) : (
-      i
-    );
+    return standardinputs.wrapWithLabel(opts.label, parsedS, i);
   }
 
   return Promise.resolve({
