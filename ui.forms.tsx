@@ -460,17 +460,25 @@ export function checkBox(opts: {
   style?: string;
   class?: string;
   disabled?: boolean;
+  requiredTrue?: true;
 }): Promise<Field<boolean>> {
   const rawS = new Source(opts.initialVal);
 
-  const parsedS: Source<Parsing<boolean>> = new Source({
-    tag: "parsed",
-    parsed: opts.initialVal,
-  });
+  const parsedS: Source<Parsing<boolean>> = new Source(
+    opts.requiredTrue === true && opts.initialVal === false
+      ? { tag: "initial" }
+      : {
+          tag: "parsed",
+          parsed: opts.initialVal,
+        }
+  );
 
   function parse(
     raw: boolean
   ): { tag: "parsed"; parsed: boolean } | { tag: "err" } {
+    if (opts.requiredTrue === true && raw === false) {
+      return { tag: "err" };
+    }
     return { tag: "parsed", parsed: raw };
   }
 
@@ -479,10 +487,13 @@ export function checkBox(opts: {
   });
 
   function render() {
-    return standardinputs.checkbox({
-      ...opts,
-      source: rawS,
-    });
+    return wrapInputWithHasErrorDynClass(
+      parsedS,
+      standardinputs.checkbox({
+        ...opts,
+        source: rawS,
+      })
+    );
   }
 
   return Promise.resolve({
