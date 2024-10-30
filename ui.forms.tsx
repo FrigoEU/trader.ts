@@ -908,7 +908,12 @@ function wrapInputWithHasErrorDynClass<T, H extends HTMLElement>(
 ) {
   return dynClass(
     parsedS,
-    (parsed) => (parsed.tag === "err" ? "has_error" : ""),
+    (parsed) =>
+      parsed.tag === "err"
+        ? "has_error"
+        : parsed.tag === "initial"
+        ? "has_initial"
+        : "",
     i
   ) as HTMLInputElement;
 }
