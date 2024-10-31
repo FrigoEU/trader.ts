@@ -181,7 +181,16 @@ export function textbox(opts: {
   i.onblur = userStoppedTyping;
   scheduleForCleanup(
     opts.source.observe((v) => {
-      i.value = v;
+      if (v === "" && i.value === "") {
+        // If we're a date input and the user is inputting a date and it's not parsing at the moment,
+        // the value of the input will be "". It will be inserted into the source and then this observer
+        // will fire, updating the value. For date inputs, this goes wrong, as hard setting the value with ""
+        // completely clears the input, so we do nothing in this case
+        // This is only really necessary for date inputs, but for others inputs it doesn't hurt so I removed the
+        // opts.type ==== "date" condition
+      } else {
+        i.value = v;
+      }
     })
   );
   return wrapWithLabel(opts.label, opts.error, i);
