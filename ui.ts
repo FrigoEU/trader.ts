@@ -83,11 +83,14 @@ export function dynVariadic<T extends Array<Source<any>>>(
           r.deleteContents();
 
           const frag = new DocumentFragment();
-          if (Array.isArray(newel)) {
-            newel.forEach((e) => frag.appendChild(e));
-          } else {
-            frag.appendChild(newel);
-          }
+          const doAppend = function (newel: Node | Node[]) {
+            if (Array.isArray(newel)) {
+              newel.forEach((e) => doAppend(e));
+            } else {
+              frag.appendChild(newel);
+            }
+          };
+          doAppend(newel);
           p.insertBefore(frag, comment2);
         }
       })
