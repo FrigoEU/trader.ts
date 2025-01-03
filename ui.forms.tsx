@@ -770,6 +770,14 @@ export function selectBox<T>(opts: {
       }
     };
 
+    scheduleForCleanup(
+      rawS.observe((r) => {
+        if (r !== i.value) {
+          i.value = r;
+        }
+      })
+    );
+
     return standardinputs.wrapWithLabel(opts.label, parsedS, i);
   }
 
