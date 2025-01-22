@@ -222,6 +222,7 @@ export function wrapWithLabel(
 export function checkbox(opts: {
   source: Source<boolean>;
   class?: string;
+  style?: string;
   label?: string;
   disabled?: boolean;
 }) {
@@ -241,7 +242,7 @@ export function checkbox(opts: {
     })
   );
   return (
-    <label className={opts.class || ""}>
+    <label className={opts.class || ""} style={opts.style || ""}>
       {i}
       {opts.label ? <span>{opts.label}</span> : ""}
     </label>
