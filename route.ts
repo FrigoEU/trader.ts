@@ -3,7 +3,6 @@ import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
 import { Either, Left, Right } from "purify-ts/Either";
 import { mapPartial } from "./utils";
-import * as querystring from "node:querystring";
 
 // TODO: maybe keeping these errors is a waste on production?
 
@@ -513,13 +512,15 @@ export function parseQueryParams(
   str: string
 ): null | Record<string, any> {
   const acc = {} as Record<string, any>;
-  const parts = querystring.parse(str, "&", "=", { maxKeys: 1 });
+  const parts = str.split("&");
   for (let op of optionalParts) {
-    const matching = parts[op.key];
+    const matching = parts.find((p) => p.startsWith(op.key));
     if (!matching) {
       acc[op.key] = undefined;
     } else {
-      const parsed = op.encoder.parse(decodeURIComponent(matching as string));
+      const parsed = op.encoder.parse(
+        decodeURIComponent(matching.substring(op.key.length + 1))
+      );
       if (parsed.isLeft()) {
         return null;
       } else {
