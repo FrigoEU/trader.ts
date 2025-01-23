@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/21.05";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.11";
     flake-utils.url = "github:numtide/flake-utils";
   };
   outputs = {self, nixpkgs, flake-utils} :
@@ -13,7 +13,7 @@
             # defaultPackage = allPackages.urweb;
             devShell = pkgs.mkShell {
               name = "school-env";
-              buildInputs = [pkgs.nodejs-14_x];
+              buildInputs = [pkgs.nodejs_22];
               shellHook = ''
               '';
             };
