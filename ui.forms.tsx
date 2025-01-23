@@ -55,7 +55,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
   public build(opts?: {
     render: (
       preRendered: {
-        [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
+        [k in keyof ParsedScope]: () => HTMLElement | HTMLElement[];
       }
     ) => HTMLElement | HTMLElement[];
   }): Field<ParsedScope> {
@@ -238,17 +238,20 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
           return renderedFields.flat();
         } else {
           const renderedFields = {} as {
-            [k in keyof ParsedScope]: HTMLElement | HTMLElement[];
+            [k in keyof ParsedScope]: () => HTMLElement | HTMLElement[];
           };
           for (let fieldName of fieldNames) {
             const fieldS = currentStatusOfFieldsS[fieldName].field;
-            renderedFields[fieldName] = dyn(fieldS, function (field) {
-              if (field === null) {
-                return <span></span>;
-              } else {
-                return field.render();
-              }
-            });
+            // Wrapping this in a closure so you can still use <dyn> inside
+            // the customRenderFunc, otherwise this bugs
+            renderedFields[fieldName] = () =>
+              dyn(fieldS, function (field) {
+                if (field === null) {
+                  return <span></span>;
+                } else {
+                  return field.render();
+                }
+              });
           }
           return customRenderFunc(renderedFields);
         }
