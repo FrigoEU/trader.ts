@@ -1,11 +1,7 @@
 {
   "name": "trader.ts",
   "version": "1.8.6",
-  "files": [
-    "**/*.ts",
-    "**/*.tsx",
-    "!test/**/*"
-  ],
+  "files": ["**/*.ts", "**/*.tsx", "!test/**/*"],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {

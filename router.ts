@@ -1,13 +1,13 @@
 import * as joda from "@js-joda/core";
 import type {
-  IncomingMessage,
-  OutgoingHttpHeaders,
-  ServerResponse as ServerResponse_,
+    IncomingMessage,
+    OutgoingHttpHeaders,
+    ServerResponse as ServerResponse_,
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
 import { Codec, nullType } from "purify-ts/Codec";
 import { Either } from "purify-ts/Either";
-import type { Route } from "./route";
+import { type Route } from "./route";
 
 declare module "http" {
   interface ServerResponse {
@@ -556,6 +556,7 @@ export class Router<Context> {
                         error.httpReturnCode < 600
                           ? error.httpReturnCode
                           : 500;
+
                       res.writeHead(returnCode, {
                         "Content-Type": "text/plain",
                       });
@@ -616,21 +617,19 @@ export class Router<Context> {
    *   }
    * }).listen(6666);
    */
+
   run(opts: RunOptions, req: ServerRequest, res: ServerResponse): boolean {
     const url = req.url;
-    // TODO: The route matching implementation is not very fast
-    //   If necessary we can greatly improve this with a better implementation
-    //   Some googling led me here:
-    //     https://github.com/delvedor/router-benchmark
-    //   and more specifically to a (compressed) radix tree data structure
-    //   among others, this one seems ok, but API is a bit weird: https://github.com/delvedor/find-my-way
-    //   this one seems nice and simple: https://www.npmjs.com/package/radix-router
+    
+    // This might look slow, but it's actually really fast.
+    // I tried to use more optimized routing libraries (https://www.npmjs.com/package/@medley/router)
+    // and it made no or negative difference.
 
     for (let spec of this.specs) {
       if (spec.method.toLowerCase() === req.method?.toLowerCase()) {
         const parsed = spec.route.parse(url || "");
-        if (parsed.isRight()) {
-          spec.run(opts, req, res, parsed.extract());
+        if (parsed !== null) {
+          spec.run(opts, req, res, parsed);
           return true;
         }
       }

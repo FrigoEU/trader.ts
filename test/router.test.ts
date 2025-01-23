@@ -9,6 +9,8 @@ import httpMocks from "node-mocks-http";
 test("Router tests", async function () {
   const router = new Router({});
 
+  // registerBogusRoutes(router);
+
   router.custom(
     apiSpec({
       route: makeRoute("/abc/def/{identifier:number}/ghi"),
@@ -53,6 +55,8 @@ test("Router tests", async function () {
     }
   );
 
+  const start = performance.now();
+
   const spy1 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
@@ -75,7 +79,7 @@ test("Router tests", async function () {
     ({ write: spy2 } as unknown) as ServerResponse
   );
 
-  await sleep(1);
+  await sleep(0);
 
   testEq(spy2.called, true);
   testEq(spy2.lastArg, 666);
@@ -90,7 +94,7 @@ test("Router tests", async function () {
     ({ write: spy3 } as unknown) as ServerResponse
   );
 
-  await sleep(1);
+  await sleep(0);
 
   testEq(spy3.called, true);
   testEq(spy3.lastArg, "mytext");
@@ -105,10 +109,13 @@ test("Router tests", async function () {
     ({ write: sp4 } as unknown) as ServerResponse
   );
 
-  await sleep(1);
+  await sleep(0);
 
   testEq(sp4.called, true);
   testEq(sp4.lastArg, "mytext123");
+
+  const end = performance.now();
+  console.log("--- " + (end - start).toString() + "ms");
 });
 
 function makeSpy1() {
@@ -127,4 +134,35 @@ function testEq<T>(t1: T, t2: T) {
 
 export function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
+}
+function registerBogusRoutes(router: Router<{}>) {
+  let i = 0;
+  while (i++ < 500) {
+    router.custom(
+      apiSpec({
+        route: makeRoute(
+          `/${generateRandomWord()}/${generateRandomWord()}/ghi`
+        ),
+        method: "GET",
+        body: null,
+        returns: c.nullType,
+      }),
+      async () => Right({}),
+      async function (_ctx, _p, _b, _auth, _req, res) {
+        return undefined;
+      }
+    );
+  }
+}
+
+function generateRandomWord(): string {
+  const letters: string = "abcdefghijklmnopqrstuvwxyz";
+  let word: string = "";
+
+  for (let i = 0; i < 10; i++) {
+    const randomIndex: number = Math.floor(Math.random() * letters.length);
+    word += letters[randomIndex];
+  }
+
+  return word;
 }

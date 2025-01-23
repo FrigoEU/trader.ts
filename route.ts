@@ -3,14 +3,20 @@ import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
 import { Either, Left, Right } from "purify-ts/Either";
 import { mapPartial } from "./utils";
+import * as querystring from "node:querystring";
 
 // TODO: maybe keeping these errors is a waste on production?
 
 export interface Route<Params> {
-  parse: (s: string) => Either<Error, Params>;
+  parse: (s: string) => null | Params;
   link: (p: Params) => string;
   mkClientSideLinkForHref: (p: Params) => string;
   parts: Part<any>[];
+  optionalParts: {
+    tag: "capture";
+    key: string;
+    encoder: Encoder<any>;
+  }[];
   __rawUrl: string; // TODO do you need this now that you have the parts?
 }
 
@@ -350,31 +356,7 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
         })
       : [];
 
-    function parseQueryParams(str: string): Either<Error, Record<string, any>> {
-      const acc = {} as Record<string, any>;
-      const parts = str.split("&");
-      for (let op of optionalParts) {
-        const matching = parts.find((p) => p.startsWith(op.key));
-        if (!matching) {
-          acc[op.key] = undefined;
-        } else {
-          const parsed = op.encoder.parse(
-            decodeURIComponent(matching.substring(op.key.length + 1))
-          );
-          if (parsed.isLeft()) {
-            const err = parsed.extract();
-            err.message =
-              `Failed to parse query params value for key ${op.key}: ` +
-              err.message;
-            return Left(err);
-          } else {
-            acc[op.key] = parsed.extract();
-          }
-        }
-      }
-      return Right(acc);
-    }
-    function parseUrl(str: string): Either<Error, Record<string, any>> {
+    function parseUrl(str: string): Record<string, any> | null {
       const acc = {} as Record<string, any>;
       let rest = str;
       for (let p of cleanedParts) {
@@ -382,19 +364,13 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
           if (rest.substring(0, p.constant.length) === p.constant) {
             rest = rest.substring(p.constant.length);
           } else {
-            return Left(
-              new Error(
-                `Tried to match constant "${p.constant}" but failed. Remaining url: ${rest}`
-              )
-            );
+            return null;
           }
         } else if (p.tag === "capture") {
           const captured = rest.split("/")[0];
           const parsed = p.encoder.parse(decodeURIComponent(captured));
           if (parsed.isLeft()) {
-            const err = parsed.extract();
-            err.message = err.message + ". Remaining url: " + rest;
-            return Left(err);
+            return null;
           } else {
             (acc as any)[p.key] = parsed.extract();
             rest = rest.substring(captured.length);
@@ -407,34 +383,31 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
         rest.trim() === "" ||
         rest.trim().startsWith("?") /* allow query params after url */
       ) {
-        return Right(acc);
+        return acc;
       } else {
-        return Left(
-          new Error(`Tried to match url, but have remaining string: ${rest}`)
-        );
+        return null;
       }
     }
 
     return {
       parts: cleanedParts,
+      optionalParts: optionalParts,
       __rawUrl: r,
       parse: function (str_: string) {
         const split = str_.split("?");
-        const url = parseUrl(split[0]);
-        return url.caseOf({
-          Left: (e) => Left(e),
-          Right: (routeparams) => {
-            const qps = parseQueryParams(split[1] || "");
-            if (qps.isLeft()) {
-              return qps;
-            } else {
-              return Right({
-                ...routeparams,
-                ...qps.extract(),
-              } as ExtractRouteParams<T, ExtraTypeMapping>);
-            }
-          },
-        });
+        const routeparams = parseUrl(split[0]);
+        if (routeparams === null) {
+          return null;
+        }
+        const qps = parseQueryParams(optionalParts, split[1] || "");
+        if (qps === null) {
+          return null;
+        } else {
+          return {
+            ...routeparams,
+            ...qps,
+          } as ExtractRouteParams<T, ExtraTypeMapping>;
+        }
       },
       link: function (params) {
         let acc: string = "";
@@ -529,4 +502,30 @@ function parseFloatSafe(n: string | null): number | null {
   }
   const num = parseFloat(n);
   return isNaN(num) ? null : num;
+}
+
+export function parseQueryParams(
+  optionalParts: {
+    tag: "capture";
+    key: string;
+    encoder: Encoder<any>;
+  }[],
+  str: string
+): null | Record<string, any> {
+  const acc = {} as Record<string, any>;
+  const parts = querystring.parse(str, "&", "=", { maxKeys: 1 });
+  for (let op of optionalParts) {
+    const matching = parts[op.key];
+    if (!matching) {
+      acc[op.key] = undefined;
+    } else {
+      const parsed = op.encoder.parse(decodeURIComponent(matching as string));
+      if (parsed.isLeft()) {
+        return null;
+      } else {
+        acc[op.key] = parsed.extract();
+      }
+    }
+  }
+  return acc;
 }
