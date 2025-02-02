@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.9.1",
+  "version": "1.9.2",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*"],
   "main": "index.ts",
   "sideEffects": false,
@@ -10,7 +10,7 @@
     "cookie": "^0.4.1",
     "openapi-types": "^7.2.3",
     "postgres": "^2.0.0-beta.5",
-    "purify-ts": "^0.16.1",
+    "purify-ts": "2.1.0",
     "rambda": "^9.2.0",
     "trader-hyperscript": "^2.0.9"
   },
