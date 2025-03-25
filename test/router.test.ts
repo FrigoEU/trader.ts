@@ -5,6 +5,7 @@ import { Right } from "purify-ts";
 import * as c from "purify-ts/Codec";
 import assert from "node:assert";
 import httpMocks from "node-mocks-http";
+import currency from "currency.js";
 
 test("Router tests", async function () {
   const router = new Router({});
@@ -51,6 +52,22 @@ test("Router tests", async function () {
     async () => Right({}),
     async function (_ctx, { text, param1, param2 }, _ps, _auth, _req, res) {
       res.write(text + (param1 || "") + (param2 || ""));
+      return undefined;
+    }
+  );
+
+  const currRoute = makeRoute("/currency/{curr:currency}/ghi");
+  router.custom(
+    apiSpec({
+      route: currRoute,
+      method: "GET",
+      body: null,
+      returns: c.nullType,
+    }),
+    async () => Right({}),
+    async function (_ctx, { curr }, _b, _auth, _req, res) {
+      res.write(curr.toString());
+      console.log(typeof curr.value);
       return undefined;
     }
   );
@@ -113,6 +130,50 @@ test("Router tests", async function () {
 
   testEq(sp4.called, true);
   testEq(sp4.lastArg, "mytext123");
+
+  const sp5 = makeSpy1();
+  router.run(
+    { redirectOnUnauthorizedPage: null },
+    httpMocks.createRequest({
+      url: currRoute.link({ curr: currency(12.25) }),
+      method: "GET",
+    }) as ServerRequest,
+    ({ write: sp5 } as unknown) as ServerResponse
+  );
+
+  await sleep(0);
+
+  testEq(sp5.called, true);
+  testEq(sp5.lastArg, "12.25");
+
+  const sp6 = makeSpy1();
+  router.run(
+    { redirectOnUnauthorizedPage: null },
+    httpMocks.createRequest({
+      url: "/currency/12.25/ghi",
+      method: "GET",
+    }) as ServerRequest,
+    ({ write: sp6 } as unknown) as ServerResponse
+  );
+
+  await sleep(0);
+
+  testEq(sp6.called, true);
+  testEq(sp6.lastArg, "12.25");
+
+  const sp7 = makeSpy1();
+  router.run(
+    { redirectOnUnauthorizedPage: null },
+    httpMocks.createRequest({
+      url: "/currency/haha/ghi",
+      method: "GET",
+    }) as ServerRequest,
+    ({ write: sp7 } as unknown) as ServerResponse
+  );
+
+  await sleep(0);
+
+  testEq(sp7.called, false);
 
   const end = performance.now();
   console.log("--- " + (end - start).toString() + "ms");

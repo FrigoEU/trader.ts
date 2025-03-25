@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.9.2",
+  "version": "1.9.3",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*"],
   "main": "index.ts",
   "sideEffects": false,
@@ -8,6 +8,7 @@
     "@js-joda/core": "^5.3.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
+    "currency.js": "^2.0.4",
     "openapi-types": "^7.2.3",
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "2.1.0",

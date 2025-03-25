@@ -1,4 +1,5 @@
 import * as joda from "@js-joda/core";
+import currency from "currency.js";
 
 export function findNonSerializable(obj: any): any | null {
   function isPlain(val: any) {
@@ -10,6 +11,7 @@ export function findNonSerializable(obj: any): any | null {
       typeof val === "number" ||
       val instanceof Date ||
       val instanceof joda.DayOfWeek ||
+      val instanceof currency ||
       val instanceof joda.LocalDate ||
       val instanceof joda.LocalTime ||
       val instanceof joda.LocalDateTime ||
@@ -63,6 +65,7 @@ export function runWithCustomSerializers<A>(f: () => A): A {
   const oldPlainDateTimePrototype = joda.LocalDateTime.prototype.toJSON;
   const oldInstantPrototype = joda.Instant.prototype.toJSON;
   const oldMonthPrototype = joda.Month.prototype.toJSON;
+  const oldCurrencyPrototype = currency.prototype.toJSON;
 
   Date.prototype.toJSON = function () {
     return {
@@ -106,6 +109,12 @@ export function runWithCustomSerializers<A>(f: () => A): A {
       value: this.ordinal(),
     } as any;
   };
+  currency.prototype.toJSON = function () {
+    return {
+      __tag: "currency",
+      value: this.value.toString(),
+    } as any;
+  };
   /* (ArrayBuffer.prototype as any).toJSON = function () {
    *   return {
    *     __tag: "ArrayBuffer",
@@ -122,6 +131,7 @@ export function runWithCustomSerializers<A>(f: () => A): A {
   joda.LocalDateTime.prototype.toJSON = oldPlainDateTimePrototype;
   joda.Instant.prototype.toJSON = oldInstantPrototype;
   joda.Month.prototype.toJSON = oldMonthPrototype;
+  currency.prototype.toJSON = oldCurrencyPrototype;
 
   return res;
 }
@@ -130,6 +140,9 @@ export function deserializeProps(p: string) {
   return JSON.parse(p, function (_: any, x: any) {
     if (x && x.__tag && x.__tag === "date" && "value" in x) {
       return new Date(x.value);
+    }
+    if (x && x.__tag && x.__tag === "currency" && "value" in x) {
+      return currency(x.value);
     }
     if (x && x.__tag && x.__tag === "plaindate" && "value" in x) {
       return joda.LocalDate.parse(x.value);

@@ -3,6 +3,7 @@ import type { Codec } from "purify-ts/Codec";
 import type { OpenAPIV3 } from "openapi-types";
 import { Either, Left, Right } from "purify-ts/Either";
 import { mapPartial } from "./utils";
+import currency from "currency.js";
 
 // TODO: maybe keeping these errors is a waste on production?
 
@@ -25,6 +26,7 @@ interface BuiltinTypeMapping {
   "number|null": number | null;
   "number[]": number[];
   "number[]|null": number[] | null;
+  currency: currency;
   boolean: boolean;
   date: joda.LocalDate;
   instant: joda.Instant;
@@ -133,6 +135,11 @@ export const builtinEncoders: {
     serialize: serializeDate,
     swaggerType: "string",
   },
+  currency: {
+    parse: parseCurrency,
+    serialize: serializeCurrency,
+    swaggerType: "number",
+  },
   instant: {
     parse: parseInstant,
     serialize: serializeInstant,
@@ -234,6 +241,20 @@ function parseInstant(s: string): Either<Error, joda.Instant> {
 }
 function serializeInstant(d: joda.Instant): string {
   return d.toString();
+}
+function parseCurrency(s: string): Either<Error, currency> {
+  try {
+    if (/^\d+\.?\d+$/.test(s)) {
+      return Right(currency(s, { errorOnInvalid: true }));
+    } else {
+      return Left(new Error("Invalid character in currency"));
+    }
+  } catch (err) {
+    return Left(err as Error);
+  }
+}
+function serializeCurrency(d: currency): string {
+  return d.value.toString();
 }
 
 type SumEncoderHelper<K extends keyof Full, Full> = K extends PropertyKey
