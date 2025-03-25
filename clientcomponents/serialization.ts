@@ -2,7 +2,7 @@ import * as joda from "@js-joda/core";
 import currency from "currency.js";
 
 export function findNonSerializable(obj: any): any | null {
-  function isPlain(val: any) {
+  function isForSureSerializable(val: any) {
     return (
       val === undefined ||
       val === null ||
@@ -17,7 +17,11 @@ export function findNonSerializable(obj: any): any | null {
       val instanceof joda.LocalDateTime ||
       val instanceof joda.Instant ||
       val instanceof joda.Month ||
-      val instanceof Buffer ||
+      val instanceof Buffer
+    );
+  }
+  function isArrayOrObj(val: any) {
+    return (
       Array.isArray(val) ||
       (val.constructor === Object && // don't allow classes or functions
         val.toString() === "[object Object]")
@@ -33,7 +37,10 @@ export function findNonSerializable(obj: any): any | null {
       return null;
     }
   }
-  if (!isPlain(obj)) {
+  if (isForSureSerializable(obj)) {
+    return null;
+  }
+  if (!isArrayOrObj(obj)) {
     return obj;
   }
 
