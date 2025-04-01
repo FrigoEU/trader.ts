@@ -768,15 +768,15 @@ export function selectBox<T>(opts: {
 
     i.oninput = () => {
       rawS.set(i.value);
-      if (lsKey) {
-        localStorage.setItem(lsKey, i.value);
-      }
     };
 
     scheduleForCleanup(
       rawS.observe((r) => {
         if (r !== i.value) {
           i.value = r;
+        }
+        if (lsKey) {
+          localStorage.setItem(lsKey, i.value);
         }
       })
     );
