@@ -512,6 +512,7 @@ export function numberBox(
     label?: string;
     constraint?: "positive" | "negative";
     constraintLabel?: string;
+    step?: number;
   }
 ): Promise<Field<number>> {
   const rawS = new Source(initialVal?.toString() || "");
@@ -525,7 +526,9 @@ export function numberBox(
   function render() {
     const i = wrapInputWithHasErrorDynClass(
       parsedS,
-      (<input type="number" value={rawS.get()} />) as HTMLInputElement
+      (
+        <input type="number" step={opts?.step || 1} value={rawS.get()} />
+      ) as HTMLInputElement
     );
     i.oninput = () => rawS.set(i.value);
     return opts?.label ? (
@@ -595,6 +598,7 @@ export function numberBoxOptional(
     label?: string;
     constraint?: "positive" | "negative";
     constraintLabel?: string;
+    step?: number;
   }
 ): Promise<Field<number | null>> {
   const rawS = new Source(initialVal?.toString() || "");
@@ -620,7 +624,9 @@ export function numberBoxOptional(
   function render() {
     const i = wrapInputWithHasErrorDynClass(
       parsedS,
-      (<input type="number" value={rawS.get()} />) as HTMLInputElement
+      (
+        <input type="number" step={opts?.step || 1} value={rawS.get()} />
+      ) as HTMLInputElement
     );
     i.oninput = () => rawS.set(i.value);
     return opts?.label ? (
