@@ -107,13 +107,14 @@ export type InternalSpec<Context, Params, Token> = {
     res: ServerResponse,
     p: Params
   ) => void;
-  needsAuthorization: null | authfunc<Context, Token>;
+  needsAuthorization: null | authfunc<Context, Token, Params>;
   tags: { name: string; comment: string }[];
 };
 
-export type authfunc<Context, Token> = (
+export type authfunc<Context, Token, Params> = (
   req: ServerRequest,
-  context: Context
+  context: Context,
+  params: Params
 ) => Promise<
   Either<
     | string
@@ -236,7 +237,7 @@ export class Router<Context> {
 
   page<Params, Token>(
     route: Route<Params>,
-    needsAuthorization: authfunc<Context, Token>,
+    needsAuthorization: authfunc<Context, Token, Params>,
     run: (
       context: Context,
       p: Params,
@@ -284,7 +285,7 @@ export class Router<Context> {
    */
   api<Params, Body, Returns, Token>(
     newSpec: APISpec<Params, Body, Returns>,
-    needsAuthorization: authfunc<Context, Token>,
+    needsAuthorization: authfunc<Context, Token, Params>,
     run: (
       context: Context,
       p: Params,
@@ -320,7 +321,7 @@ export class Router<Context> {
    */
   serverSentEvents<Params, Returns, Token>(
     newSpec: SSESpec<Params, Returns[]>,
-    needsAuthorization: authfunc<Context, Token>,
+    needsAuthorization: authfunc<Context, Token, Params>,
     run: (context: Context, newItem: (toPush: Returns[]) => void) => void,
     filter: (p: Params, r: Returns) => boolean,
     removeItemsFromCacheAfterMinutes: number
@@ -469,7 +470,7 @@ export class Router<Context> {
   // If you call this function, you're responsible for handling (and .end()'ing) the response 100% yourself
   custom<Params, Body, Returns, Token>(
     newSpec: APISpec<Params, Body, Returns>,
-    needsAuthorization: authfunc<Context, Token>,
+    needsAuthorization: authfunc<Context, Token, Params>,
     run: (
       context: Context,
       p: Params,
@@ -510,7 +511,7 @@ export class Router<Context> {
               | [number, OutgoingHttpHeaders],
               Token
             >
-          > = needsAuthorization(req, router.context) as Promise<
+          > = needsAuthorization(req, router.context, p) as Promise<
             Either<
               | string
               | { tag: "redirect"; redirectUrl: string }
