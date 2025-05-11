@@ -59,19 +59,12 @@ export async function findStaticFilesToInclude<
   return out;
 }
 
-export function sendDataAsImmutable(
+export function writeDataWithCompression(
   req: ServerRequest,
   res: ServerResponse,
-  data: string | Buffer,
-  mimetype?: string
-): void {
+  data: string | Buffer
+) {
   try {
-    res.setHeader("Cache-Control", "public,max-age=604800,immutable");
-    res.setHeader("Expires", "Wed, 21 Oct 2099 07:28:00 GMT");
-    if (mimetype) {
-      res.setHeader("Content-Type", mimetype);
-    } else {
-    }
     // Brotli Compression (= Chrome)
     if (
       req.headers["accept-encoding"] &&
@@ -120,6 +113,21 @@ export function sendDataAsImmutable(
     res.writeHead(404);
     res.end(JSON.stringify(err, null, 2));
   }
+}
+
+export function sendDataAsImmutable(
+  req: ServerRequest,
+  res: ServerResponse,
+  data: string | Buffer,
+  mimetype?: string
+): void {
+  res.setHeader("Cache-Control", "public,max-age=604800,immutable");
+  res.setHeader("Expires", "Wed, 21 Oct 2099 07:28:00 GMT");
+  if (mimetype) {
+    res.setHeader("Content-Type", mimetype);
+  } else {
+  }
+  writeDataWithCompression(req, res, data);
 }
 
 export async function sendStatic(

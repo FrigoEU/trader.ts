@@ -1,13 +1,14 @@
 import * as joda from "@js-joda/core";
 import type {
-    IncomingMessage,
-    OutgoingHttpHeaders,
-    ServerResponse as ServerResponse_,
+  IncomingMessage,
+  OutgoingHttpHeaders,
+  ServerResponse as ServerResponse_,
 } from "http";
 import type { Http2ServerRequest, Http2ServerResponse } from "http2";
 import { Codec, nullType } from "purify-ts/Codec";
 import { Either } from "purify-ts/Either";
-import { type Route } from "./route";
+import type { Route } from "./route";
+import { writeDataWithCompression } from "./router.static";
 
 declare module "http" {
   interface ServerResponse {
@@ -243,7 +244,8 @@ export class Router<Context> {
       auth: Token,
       req: ServerRequest,
       res: ServerResponse
-    ) => Promise<HTMLElement | { tag: "redirect"; url: string }>
+    ) => Promise<HTMLElement | { tag: "redirect"; url: string }>,
+    opts?: { compress?: boolean }
   ): void {
     this.custom<Params, null, null, Token>(
       {
@@ -261,14 +263,24 @@ export class Router<Context> {
             });
             res.end();
           } else {
-            res.writeHead(200, {
-              "Content-Type": "text/html; charset=utf-8",
-              "Cache-Control": "no-cache, no-store, must-revalidate",
-              Pragma: "no-cache",
-              Expires: "0",
-            });
-            res.write("<!DOCTYPE html>"); // if we know the headers in the router, we could send them immediately, even before the handler runs...
-            res.end(r.outerHTML);
+            res.setHeader("Content-Type", "text/html; charset=utf-8");
+            res.setHeader(
+              "Cache-Control",
+              "no-cache, no-store, must-revalidate"
+            );
+            res.setHeader("Pragma", "no-cache");
+            res.setHeader("Expires", "0");
+            if (opts?.compress === true) {
+              writeDataWithCompression(
+                req,
+                res,
+                "<!DOCTYPE html>" + r.outerHTML
+              );
+            } else {
+              res.writeHead(200, {});
+              res.write("<!DOCTYPE html>"); // if we know the headers in the router, we could send them immediately, even before the handler runs...
+              res.end(r.outerHTML);
+            }
           }
         });
       }
@@ -292,7 +304,8 @@ export class Router<Context> {
       auth: Token,
       req: ServerRequest,
       res: ServerResponse
-    ) => Promise<Returns>
+    ) => Promise<Returns>,
+    opts?: { compress?: boolean }
   ): void {
     this.custom<Params, Body, Returns, Token>(
       newSpec,
@@ -300,12 +313,16 @@ export class Router<Context> {
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
           const responseAsString = JSON.stringify(newSpec.returns.encode(r));
-          res.writeHead(200, {
-            "Content-Type": "application/json",
-            "Content-Length": Buffer.byteLength(responseAsString),
-          });
-          // console.log(JSON.stringify(newSpec.returns.encode(r)));
-          res.end(responseAsString);
+          if (opts?.compress === true) {
+            res.writeHead(200, {
+              "Content-Type": "application/json",
+              "Content-Length": Buffer.byteLength(responseAsString),
+            });
+            res.end(responseAsString);
+          } else {
+            res.setHeader("Content-Type", "application/json");
+            writeDataWithCompression(req, res, responseAsString);
+          }
         });
       }
     );
@@ -620,7 +637,7 @@ export class Router<Context> {
 
   run(opts: RunOptions, req: ServerRequest, res: ServerResponse): boolean {
     const url = req.url;
-    
+
     // This might look slow, but it's actually really fast.
     // I tried to use more optimized routing libraries (https://www.npmjs.com/package/@medley/router)
     // and it made no or negative difference.
