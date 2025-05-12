@@ -299,11 +299,14 @@ export function textBox(opts: {
     return { tag: "parsed", parsed: currentValue };
   }
 
-  const cleanup = rawS.observe((raw) => {
-    parsedS.set(parse(raw));
-  });
-
   function render() {
+    syncRawAndParsing<string, string>({
+      rawS,
+      parsingS: parsedS,
+      parse,
+      parsedToRaw: (s) => s,
+    });
+
     return wrapInputWithHasErrorDynClass(
       parsedS,
       standardinputs.textbox({
