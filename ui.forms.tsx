@@ -321,7 +321,7 @@ export function textBox(opts: {
 
   return Promise.resolve({
     s: parsedS,
-    cleanup,
+    cleanup: () => {},
     render,
   });
 }
