@@ -69,6 +69,7 @@ export function writeDataWithCompression(
     // No compression
     res.writeHead(200);
     res.end(data);
+    return;
   }
   try {
     // Brotli Compression (= Chrome)
