@@ -59,6 +59,14 @@ export async function findStaticFilesToInclude<
   return out;
 }
 
+const brotliCompression = zlib.createBrotliCompress({
+  params: {
+    [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
+    [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
+  },
+});
+const gzipCompression = zlib.createGzip({ level: 6 });
+
 export function writeDataWithCompression(
   req: ServerRequest,
   res: ServerResponse,
@@ -81,12 +89,7 @@ export function writeDataWithCompression(
       stream.pipeline(
         readable,
         // TODO: could be interesting to precache all assets with very high compression rate in production?
-        zlib.createBrotliCompress({
-          params: {
-            [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-            [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
-          },
-        }),
+        brotliCompression,
         res,
         (err) => {
           if (err) {
@@ -101,7 +104,7 @@ export function writeDataWithCompression(
     ) {
       res.setHeader("Content-Encoding", "gzip");
       const readable = stream.Readable.from(data);
-      stream.pipeline(readable, zlib.createGzip({ level: 6 }), res, (err) => {
+      stream.pipeline(readable, gzipCompression, res, (err) => {
         if (err) {
           console.error("Failed gzip: " + err);
         }
