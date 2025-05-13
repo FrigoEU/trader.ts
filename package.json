@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.9.10",
+  "version": "1.9.11",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*"],
   "main": "index.ts",
   "sideEffects": false,

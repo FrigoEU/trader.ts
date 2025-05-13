@@ -3,7 +3,7 @@ import path from "path";
 import * as stream from "stream";
 import { ServerRequest, ServerResponse } from "./router";
 import { tryExtractErrorMessage } from "./utils";
-import { debuglog } from "util";
+import { debuglog, isString } from "util";
 import * as zlib from "zlib";
 
 const log = debuglog("static");
@@ -64,6 +64,12 @@ export function writeDataWithCompression(
   res: ServerResponse,
   data: string | Buffer
 ) {
+  const size = typeof data === "string" ? data.length : data.byteLength;
+  if (size < 1000) {
+    // No compression
+    res.writeHead(200);
+    res.end(data);
+  }
   try {
     // Brotli Compression (= Chrome)
     if (

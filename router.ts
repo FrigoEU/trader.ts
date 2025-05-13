@@ -246,7 +246,7 @@ export class Router<Context> {
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<HTMLElement | { tag: "redirect"; url: string }>,
-    opts?: { compress?: boolean }
+    opts?: { dont_compress?: boolean }
   ): void {
     this.custom<Params, null, null, Token>(
       {
@@ -271,16 +271,16 @@ export class Router<Context> {
             );
             res.setHeader("Pragma", "no-cache");
             res.setHeader("Expires", "0");
-            if (opts?.compress === true) {
+            if (opts?.dont_compress === true) {
+              res.writeHead(200, {});
+              res.write("<!DOCTYPE html>");
+              res.end(r.outerHTML);
+            } else {
               writeDataWithCompression(
                 req,
                 res,
                 "<!DOCTYPE html>" + r.outerHTML
               );
-            } else {
-              res.writeHead(200, {});
-              res.write("<!DOCTYPE html>"); // if we know the headers in the router, we could send them immediately, even before the handler runs...
-              res.end(r.outerHTML);
             }
           }
         });
