@@ -246,7 +246,7 @@ export class Router<Context> {
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<HTMLElement | { tag: "redirect"; url: string }>,
-    opts?: { dont_compress?: boolean }
+    opts?: { dontCompress?: boolean }
   ): void {
     this.custom<Params, null, null, Token>(
       {
@@ -271,7 +271,7 @@ export class Router<Context> {
             );
             res.setHeader("Pragma", "no-cache");
             res.setHeader("Expires", "0");
-            if (opts?.dont_compress === true) {
+            if (opts?.dontCompress === true) {
               res.writeHead(200, {});
               res.write("<!DOCTYPE html>");
               res.end(r.outerHTML);
@@ -306,7 +306,7 @@ export class Router<Context> {
       req: ServerRequest,
       res: ServerResponse
     ) => Promise<Returns>,
-    opts?: { compress?: boolean }
+    opts?: { dontCompress?: boolean }
   ): void {
     this.custom<Params, Body, Returns, Token>(
       newSpec,
@@ -314,7 +314,7 @@ export class Router<Context> {
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
           const responseAsString = JSON.stringify(newSpec.returns.encode(r));
-          if (opts?.compress === true) {
+          if (opts?.dontCompress === true) {
             res.writeHead(200, {
               "Content-Type": "application/json",
               "Content-Length": Buffer.byteLength(responseAsString),
