@@ -488,11 +488,14 @@ export function checkBox(opts: {
     return { tag: "parsed", parsed: raw };
   }
 
-  const cleanup = rawS.observe((raw) => {
-    parsedS.set(parse(raw));
-  });
-
   function render() {
+    syncRawAndParsing({
+      rawS,
+      parsingS: parsedS,
+      parse: parse,
+      parsedToRaw: (t) => t,
+    });
+
     return wrapInputWithHasErrorDynClass(
       parsedS,
       standardinputs.checkbox({
@@ -504,7 +507,7 @@ export function checkBox(opts: {
 
   return Promise.resolve({
     s: parsedS,
-    cleanup,
+    cleanup: () => {},
     render,
   });
 }
