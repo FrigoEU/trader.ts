@@ -1,4 +1,5 @@
 import { Source, unsubber } from "./types/source";
+export { Source } from "./types/source";
 
 type unsubberList = (unsubber | unsubberList)[];
 let currentUnsubberList: null | unsubberList = null;

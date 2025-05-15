@@ -3,10 +3,9 @@ import type {
   IncomingMessage,
   OutgoingHttpHeaders,
   ServerResponse as ServerResponse_,
-} from "http";
-import type { Http2ServerRequest, Http2ServerResponse } from "http2";
+} from "node:http";
 import { Codec, nullType } from "purify-ts/Codec";
-import { Either } from "purify-ts/Either";
+import { Either, Right } from "purify-ts/Either";
 import type { Route } from "./route";
 import { writeDataWithCompression } from "./router.static";
 
@@ -21,8 +20,8 @@ declare module "http" {
   }
 }
 
-export type ServerRequest = IncomingMessage | Http2ServerRequest;
-export type ServerResponse = ServerResponse_ | Http2ServerResponse;
+export type ServerRequest = IncomingMessage;
+export type ServerResponse = ServerResponse_;
 
 const isDev = process.env.NODE_ENV || "development" === "development";
 
@@ -743,3 +742,7 @@ function takeRightWhile<T>(arr: T[], cb: (t: T) => boolean): T[] {
   }
   return newArr;
 }
+
+export const noAuthorization: authfunc<any, null, any> = async function () {
+  return Right(null);
+};

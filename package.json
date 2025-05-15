@@ -1,7 +1,7 @@
 {
   "name": "trader.ts",
-  "version": "1.9.15",
-  "files": ["**/*.ts", "**/*.tsx", "!test/**/*"],
+  "version": "1.9.16",
+  "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {
@@ -18,7 +18,8 @@
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation",
     "test": "tsx --test \"test/*\"",
-    "test_debug": "tsx --test --inspect-brk \"test/*\""
+    "test_debug": "tsx --test --inspect-brk \"test/*\"",
+    "docs": "cd doc && mdbook build"
   },
   "devDependencies": {
     "@types/cookie": "^0.4.0",

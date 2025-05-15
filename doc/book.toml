@@ -1,0 +1,5 @@
+[book]
+title = "Example book"
+authors = ["Simon Van Casteren"]
+description = "Library documentation for trader.ts"
+src ="src"

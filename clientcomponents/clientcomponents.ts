@@ -21,16 +21,17 @@ export function registerClientComponentsSync<T extends { [key: string]: any }>(
   (window as any).instantiateComponent = instantiateComponent;
   return components;
 }
+export const registerClientComponents = registerClientComponentsSync;
 
-export function registerClientComponentsAsync<T extends { [key: string]: any }>(
-  components: {
-    [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
-  }
-): ClientComponents<T> {
-  (window as any).clientcomponents = components;
-  (window as any).instantiateComponent = instantiateComponent;
-  return components;
-}
+// export function registerClientComponentsAsync<T extends { [key: string]: any }>(
+//   components: {
+//     [K in keyof T]: () => Promise<ClientComponent<T[K]>>;
+//   }
+// ): ClientComponents<T> {
+//   (window as any).clientcomponents = components;
+//   (window as any).instantiateComponent = instantiateComponent;
+//   return components;
+// }
 
 // export const client = registerClientComponents({
 //   comp1: async () => {
@@ -72,7 +73,7 @@ export type GetPropsFromComponent<T> = T extends () => Promise<
 
 function renderInBrowserImpl(name: string, p: any): HTMLElement[] {
   // serverside: make script tag, stringify props and pass "serialized: true"
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" || typeof window !== undefined) {
     // in production: don't check anything, following check is rather expensive
   } else {
     // in development: make sure everything is serializable
@@ -167,9 +168,9 @@ function instantiateComponent(
   currentScript.remove();
 }
 
-function renderComponentClientside<Props>(
+export function renderComponentClientside<Props>(
   parent: ParentNode,
-  currentScript: HTMLOrSVGScriptElement,
+  insertBeforeThisEl: HTMLOrSVGScriptElement | null,
   c: ClientComponent<Props> | (() => Promise<ClientComponent<Props>>),
   p: Props
 ): Comment {
@@ -179,7 +180,7 @@ function renderComponentClientside<Props>(
   (com as any).component = c;
   (com as any).props = p;
 
-  parent.insertBefore(com, currentScript);
+  parent.insertBefore(com, insertBeforeThisEl);
 
   const renderOrP = c(p);
 

@@ -1,5 +1,14 @@
 /node_modules/
 /.log/
 /out/
-*.js
 /.direnv/
+/example/node_modules/
+/example/out/
+/example/package-lock.json
+/example_client_only/node_modules/
+/example_client_only/out/
+/example_client_only/package-lock.json
+/example_server_only/node_modules/
+/example_server_only/out/
+/example_server_only/package-lock.json
+/doc/book/

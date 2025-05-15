@@ -1,0 +1,14 @@
+{
+  "name": "trader.ts example: Client only",
+  "dependencies": {
+    "trader.ts": "file:../"
+  },
+  "scripts": {
+    "build": "node build.js",
+    "start": "npm run build && serve"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.4",
+    "serve": "^14.2.4"
+  }
+}

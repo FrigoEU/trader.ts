@@ -13,7 +13,9 @@
             # defaultPackage = allPackages.urweb;
             devShell = pkgs.mkShell {
               name = "school-env";
-              buildInputs = [pkgs.nodejs_22];
+              buildInputs = [pkgs.nodejs_22
+                             pkgs.mdbook
+                            ];
               shellHook = ''
               '';
             };

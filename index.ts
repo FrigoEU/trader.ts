@@ -1,3 +1,6 @@
+import { default as h2 } from "trader-hyperscript";
+export const h = h2;
+
 export * as Route from "./route";
 export * as Router from "./router";
 export * as RouterSwagger from "./router.swagger";
