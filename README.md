@@ -257,3 +257,6 @@ http
 
 console.log(`Listening on port ${port}`);
 ```
+
+## Project status
+Is this project finished? Not completely. I've been using it for years now on multiple commercial projects, but it probably has a lot of edge cases that I don't see anymore. PR's, questions and advice are very welcome!
