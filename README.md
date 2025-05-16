@@ -10,7 +10,7 @@ Trader.ts is a typescript UI library with a serverside and a clientside componen
 * Just provide the basics to build on
 * No framework: Just a library that provides you with useful functions
 
-Built in response to React, Angular, Vue, Next.Js ever growing API surface and complicated mental models, the core of trader.ts consists of only a handful of functions. It might seem too limited and simple at first, but the simple abstractions allow you to build anything you want on top of it.
+Built in response to React, Angular, Vue and Next.Js with their ever growing API surfaces and complicated mental models, the core of trader.ts consists of only a handful of functions. It might seem too limited and simple at first, but the simple abstractions allow you to build anything you want on top of it.
 
 ## Server: Node.JS
 On the server, trader.ts provides a Router to structure your application. You define the routes of your application, whether they will return HTML or JSON data (or have custom processing) and it returns you a function that you can use to route incoming HTTP requests.
