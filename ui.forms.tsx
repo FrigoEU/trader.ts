@@ -462,7 +462,7 @@ export function constantField<T>(
 
 export function checkBox(opts: {
   initialVal: boolean;
-  label: string;
+  label: string | HTMLElement;
   style?: string;
   class?: string;
   disabled?: boolean;

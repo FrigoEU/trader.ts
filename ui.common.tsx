@@ -223,7 +223,7 @@ export function checkbox(opts: {
   source: Source<boolean>;
   class?: string;
   style?: string;
-  label?: string;
+  label?: string | HTMLElement;
   disabled?: boolean;
 }) {
   const i = (
