@@ -1,19 +1,19 @@
 # Trader.ts 
-Trader.ts is a typescript UI library with a serverside and a clientside component. The different parts can be used independently but work together seamlessly. The main design goals are:
+Trader.ts is a typescript UI library with server-side and client-side components. The different parts can be used independently but work together seamlessly. The main design goals are:
 
 * No magic: just function calls.
   * No special file structure, special function names, build-time processing,...
-* The simplest possible mental model, no quirks
-  * No hooks, no reconciliation, ...
+* The simplest possible mental model; no quirks
+  * No hooks, no reconciliation, no dirty checking, ...
 * Fully typesafe, including communication between server and browser and back
 * Very small API surface
-* Just provide the basics to build on
-* No framework: Just a library that provides you with useful functions
+* Provide just the basics to build on
+* Not a framework: It's a library that provides useful functions
 
-Built in response to React, Angular, Vue and Next.Js with their ever growing API surfaces and complicated mental models, the core of trader.ts consists of only a handful of functions. It might seem too limited and simple at first, but the simple abstractions allow you to build anything you want on top of it.
+Compared to solutions like React, Angular, Vue and Next.Js, trader.ts consists of only a handful of functions and a very simple mental model. It might seem too limited and simple at first, but the simple abstractions allow you to build anything you want on top of it.
 
 ## Server: Node.JS
-On the server, trader.ts provides a Router to structure your application. You define the routes of your application, whether they will return HTML or JSON data (or have custom processing) and it returns you a function that you can use to route incoming HTTP requests.
+On the server, Trader.ts provides a `Router` to structure your application. You define the your application's routes, specify whether they return HTML or JSON data (or contain custom processing) and it provides a function to route and handle incoming HTTP requests.
 
 ```typescript
 // server.tsx
@@ -25,7 +25,7 @@ import * as http from "node:http";
 const myFirstRoute = Route.makeRoute("/?{myOptionalParam:string}");
 
 // An object that will be passed to every handler.
-// Can contain things like a handle to the database, caches, ...
+// Can contain things like a handle to the database, caches, etc.
 const myContext = {};
 
 // Creating our router
@@ -68,10 +68,10 @@ http
 console.log(`Listening on port ${port}`);
 ```
 
-You can find a runnable example of this in ./example_server_only
+You can find a runnable example of this in `./example_server_only`
 
 ## Client: Browser
-In the browser, trader.ts allows you to render HTML dynamically, similar in goals to UI libraries like React, Angular or Vue. Importantly, you mark data that can change in the browser with a Source datatype (similar to an observable). This might seem like a step back into the past of web development, but it makes everything much more simple and predictable.
+In the browser, Trader.ts allows you to render HTML dynamically, similar in its goals to UI libraries like React, Angular or Vue. Importantly, you mark data that can change in the browser with a `Source` datatype (similar to an observable). This might seem like a step back into the past of web development, but it makes everything much more simple and predictable.
 
 ```typescript
 // client.tsx
@@ -107,16 +107,18 @@ ClientComponents.renderComponentClientside(
 );
 ```
 
-You can find a runnable example of this in ./example_client_only
+You can find a runnable example of this in `./example_client_only`
 
-`dyn` (stands for dynamic) is the most important function here, rerendering everything inside when the Source changes. This might seem archaic, slow, etc but it's just much easier to work with. Inputs are implemented differently (using observe to set values, etc). Since the mental model is so simple, you can implement things like async loading, caching etc, all yourself exactly the way you want and only when you need it.
+`dyn` (short for dynamic) is the most important function here, re-rendering everything inside when the `Source` changes. This might seem archaic, slow, etc. but it's just much easier to work with and perfectly suited for many applications. Inputs are implemented differently using `observe` to set the input's value property, avoiding obnoxious behavior. 
+
+Since the mental model is so simple, you can implement things like async loading, caching etc, all yourself exactly the way you want and only when you need them.
 
 ## Client and server working together
-In a project where both client and server are written in TypeScript and using Trader.ts, communication back and forth can be handled by Trader.ts in a fully typesafe way. Because there is no magic, the heavy lifting to accomplish this is done by two files ("routes" and "clientcomponents") being shared by the client and the server bundles. 
+In a project where both client and server are written in TypeScript and use Trader.ts, communication can be handled by Trader.ts in a fully type-safe way. Because there is no magic, the heavy lifting to accomplish this is done by two files (`routes.ts` and `clientcomponents.ts`) being shared by the client and the server bundles. 
 
-The two above examples are integrated in a single project. Note that file structure and file names are completely up to you. 
+The two preceding examples are integrated into a single project. Note that file structure and file names are completely flexible. 
 
-You can find the full example in ./example
+You can find the full example in `./example`.
 
 ```typescript
 // client.tsx
@@ -130,7 +132,7 @@ export function renderMyClientComponent(props: { startNumber: number }) {
     <div>
       <h1>Hello from Trader.ts!</h1>
       {UI.dyn(counterS, (counter) => (
-        <h2>Counter: #{counter}</h2>
+        <h2>Counter: {counter}</h2>
       ))}
 
       <div>
@@ -151,7 +153,7 @@ import { Route } from "trader.ts";
 import { apiSpec } from "trader.ts/router";
 
 // A definition of a route, described by a URL with parameters
-// The type of myFirstRoute is Route<{myParam: number, myOptionalParam: string | undefined}>
+// The type of myFirstRoute is Route<{myOptionalParam: string | undefined}>
 export const myFirstRoute = Route.makeRoute("/?{myOptionalParam:string}");
 
 export const clientcomponentsJsRoute = apiSpec({
@@ -259,4 +261,4 @@ console.log(`Listening on port ${port}`);
 ```
 
 ## Project status
-Is this project finished? Not completely. I've been using it for years now on multiple commercial projects, but it probably has a lot of edge cases that I don't see anymore. PR's, questions and advice are very welcome!
+Is this project finished? Not entirely. I've used it for years in multiple commercial projects, but it likely has edge cases I no longer notice. PR's, questions, and advice are very welcome!
