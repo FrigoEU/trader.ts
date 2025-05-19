@@ -266,6 +266,7 @@ export function textBox(opts: {
   label?: string;
   style?: string;
   class?: string;
+  autocomplete?: standardinputs.textbox_autocomplete;
   validations?: ((
     s: string
   ) => { tag: "err"; label?: string } | { tag: "parsed"; parsed: string })[];

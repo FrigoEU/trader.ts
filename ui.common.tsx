@@ -123,6 +123,21 @@ export function renderIf(
   });
 }
 
+export type textbox_autocomplete =
+  | "off"
+  | "on"
+  | "tel"
+  | "email"
+  | "name"
+  | "current-password"
+  | "new-password"
+  | "street-address"
+  | "postal-code"
+  | "bday"
+  | "url"
+  | "address-level1"
+  | "address-level2";
+
 export function textbox(opts: {
   source: Source<string>;
   trackUserTyping?: boolean;
@@ -136,6 +151,7 @@ export function textbox(opts: {
   placeholder?: string;
   id?: string;
   required?: boolean;
+  autocomplete?: textbox_autocomplete;
 }) {
   const userIsTypingS = new Source(false);
   const i_orig =
@@ -147,6 +163,7 @@ export function textbox(opts: {
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
             required={opts.required || undefined}
+            autocomplete={opts.autocomplete || undefined}
             id={opts.id || undefined}
           />
         ) as HTMLInputElement)
@@ -158,6 +175,7 @@ export function textbox(opts: {
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
             required={opts.required || undefined}
+            autocomplete={opts.autocomplete || undefined}
             id={opts.id || undefined}
           />
         ) as HTMLInputElement);
