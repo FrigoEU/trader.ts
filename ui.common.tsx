@@ -162,9 +162,6 @@ export function textbox(opts: {
             style={opts.style || ""}
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
-            required={opts.required || undefined}
-            autocomplete={opts.autocomplete || undefined}
-            id={opts.id || undefined}
           />
         ) as HTMLInputElement)
       : ((
@@ -174,11 +171,17 @@ export function textbox(opts: {
             className={opts.class || ""}
             value={opts.source.get()}
             placeholder={opts.placeholder || ""}
-            required={opts.required || undefined}
-            autocomplete={opts.autocomplete || undefined}
-            id={opts.id || undefined}
           />
         ) as HTMLInputElement);
+  if (opts.autocomplete !== undefined) {
+    i_orig.setAttribute("autocomplete", opts.autocomplete);
+  }
+  if (opts.required !== undefined && opts.required === true) {
+    i_orig.setAttribute("required", "required");
+  }
+  if (opts.id !== undefined) {
+    i_orig.setAttribute("id", opts.id);
+  }
   const i = opts.trackUserTyping
     ? (dynClass(
         userIsTypingS,
