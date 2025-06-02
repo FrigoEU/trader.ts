@@ -520,6 +520,9 @@ export function numberBox(
     constraint?: "positive" | "negative";
     constraintLabel?: string;
     step?: number;
+    validations?: ((
+      n: number
+    ) => { tag: "err"; label: string } | { tag: "parsed"; parsed: number })[];
   }
 ): Promise<Field<number>> {
   const rawS = new Source(initialVal?.toString() || "");
@@ -552,7 +555,7 @@ export function numberBox(
     rawS,
     parsingS: parsedS,
     parse: (n) => {
-      return parseNumberInput(n);
+      return parseNumberInput(n, opts || {});
     },
     parsedToRaw: (n) => n.toString(),
   });
@@ -566,9 +569,12 @@ export function numberBox(
 
 function parseNumberInput(
   raw: string,
-  opts?: {
+  opts: {
     constraint?: "positive" | "negative";
     constraintLabel?: string;
+    validations?: ((
+      n: number
+    ) => { tag: "err"; label: string } | { tag: "parsed"; parsed: number })[];
   }
 ): { tag: "parsed"; parsed: number } | { tag: "err"; label?: string } {
   try {
@@ -590,6 +596,13 @@ function parseNumberInput(
       ) {
         return { tag: "err", label: opts.constraintLabel || "" };
       }
+      const validations = opts?.validations || [];
+      for (let validation of validations) {
+        const res = validation(parsed);
+        if (res.tag === "err") {
+          return res;
+        }
+      }
       return { tag: "parsed", parsed };
     } else {
       return { tag: "err" };
@@ -605,6 +618,9 @@ export function numberBoxOptional(
     label?: string;
     constraint?: "positive" | "negative";
     constraintLabel?: string;
+    validations?: ((
+      n: number
+    ) => { tag: "err"; label: string } | { tag: "parsed"; parsed: number })[];
     step?: number;
   }
 ): Promise<Field<number | null>> {
@@ -621,7 +637,7 @@ export function numberBoxOptional(
     if (raw.trim() === "") {
       return { tag: "parsed", parsed: null };
     }
-    return parseNumberInput(raw, opts);
+    return parseNumberInput(raw, opts || {});
   }
 
   const cleanup = rawS.observe((raw) => {
