@@ -270,10 +270,10 @@ export function checkbox(opts: {
   );
 }
 
-export function selectbox(opts: {
-  source: Source<string>;
+export function selectbox<T extends string>(opts: {
+  source: Source<T>;
   error?: Source<string | null>;
-  options: { value: string; label: string }[];
+  options: { value: T; label: string }[];
   class?: string;
   style?: string;
   label?: string;
@@ -290,7 +290,7 @@ export function selectbox(opts: {
   const curr = opts.source.get();
   select.value = curr;
   select.oninput = function () {
-    opts.source.set(select.value);
+    opts.source.set(select.value as T);
     opts.oninput && opts.oninput();
   };
   scheduleForCleanup(
