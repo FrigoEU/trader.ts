@@ -263,7 +263,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 export function textBox(opts: {
   initialVal?: string;
   type?: string;
-  label?: string;
+  label?: string | HTMLElement;
   style?: string;
   class?: string;
   autocomplete?: standardinputs.textbox_autocomplete;

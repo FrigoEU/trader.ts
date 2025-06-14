@@ -147,7 +147,7 @@ export function textbox(opts: {
   class?: string;
   type?: string;
   style?: string;
-  label?: string;
+  label?: string | HTMLElement;
   placeholder?: string;
   id?: string;
   required?: boolean;
@@ -218,7 +218,7 @@ export function textbox(opts: {
 }
 
 export function wrapWithLabel(
-  l: string | undefined,
+  l: string | HTMLElement | undefined,
   err:
     | undefined
     | Source<string | null>
