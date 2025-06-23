@@ -673,7 +673,7 @@ export function selectBox<T>(opts: {
   initial: T | null | undefined;
   values: T[];
   show: (t: T) => string;
-  label?: string;
+  label?: string | HTMLElement;
   style?: string;
   class?: string;
   saveAndLoadInitialValToLocalStorage?: string;
