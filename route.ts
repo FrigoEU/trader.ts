@@ -270,9 +270,9 @@ export function makeEncoderFromSum<
 ): Encoder<SumEncoderHelper<K, Options>> {
   return {
     serialize: function (sum) {
-      const key: string = Object.keys(sum)[0];
+      const key: string = Object.keys(sum)[0]!;
       const val = (sum as any)[key];
-      const foundOption = opts[key];
+      const foundOption = opts[key]!;
       return key + "~" + foundOption.serialize(val);
     },
     parse: function (str): Either<Error, SumEncoderHelper<K, Options>> {
@@ -287,7 +287,7 @@ export function makeEncoderFromSum<
             (err) => new Error("In case " + split[0] + ": " + err.message),
             (parsed) =>
               ({
-                [split[0]]: parsed,
+                [split[0]!]: parsed,
               } as SumEncoderHelper<K, Options>)
           );
         }
@@ -342,7 +342,7 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
     throw new Error("Route must start with '/'");
   }
   const splitOnQuestionmark = r.split("?");
-  const urlParts = splitOnQuestionmark[0].match(regex);
+  const urlParts = splitOnQuestionmark[0]!.match(regex);
   if (urlParts === null) {
     throw new Error("Invalid path: " + r);
   } else {
@@ -387,7 +387,7 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
             return null;
           }
         } else if (p.tag === "capture") {
-          const captured = rest.split("/")[0];
+          const captured = rest.split("/")[0]!;
           const parsed = p.encoder.parse(decodeURIComponent(captured));
           if (parsed.isLeft()) {
             return null;
@@ -415,7 +415,7 @@ export function makeRoute<T extends string, ExtraTypeMapping>(
       __rawUrl: r,
       parse: function (str_: string) {
         const split = str_.split("?");
-        const routeparams = parseUrl(split[0]);
+        const routeparams = parseUrl(split[0]!);
         if (routeparams === null) {
           return null;
         }

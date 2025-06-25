@@ -440,7 +440,7 @@ export class Router<Context> {
           return;
         } else {
           const lastEventId = parseInt(
-            Array.isArray(lastEventIdStr) ? lastEventIdStr[0] : lastEventIdStr,
+            Array.isArray(lastEventIdStr) ? lastEventIdStr[0]! : lastEventIdStr,
             10
           );
           if (isNaN(lastEventId)) {
@@ -697,7 +697,7 @@ export class Router<Context> {
     } else {
       const rs = routes as { [name: string]: RoutesRec };
       for (let k in rs) {
-        const r = rs[k];
+        const r = rs[k]!;
         const res = this.checkAllRoutesImplemented(r);
         if (res !== null) {
           return res;
@@ -725,7 +725,7 @@ export class HTTPError extends Error {
 function pullAt<T>(arr: T[], ns: number[]): T[] {
   ns.sort();
   for (let n = ns.length - 1; n >= 0; n--) {
-    arr.splice(ns[n], 1);
+    arr.splice(ns[n]!, 1);
   }
   return arr;
 }
@@ -733,7 +733,7 @@ function pullAt<T>(arr: T[], ns: number[]): T[] {
 function takeRightWhile<T>(arr: T[], cb: (t: T) => boolean): T[] {
   let newArr: T[] = [];
   for (let i = arr.length - 1; i >= 0; i--) {
-    const curr = arr[i];
+    const curr = arr[i]!;
     if (cb(curr)) {
       newArr.unshift(curr);
     } else {

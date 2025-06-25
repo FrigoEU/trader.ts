@@ -1,10 +1,10 @@
 import * as fs from "fs/promises";
 import path from "path";
 import * as stream from "stream";
+import { debuglog } from "util";
+import * as zlib from "zlib";
 import { ServerRequest, ServerResponse } from "./router";
 import { tryExtractErrorMessage } from "./utils";
-import { debuglog, isString } from "util";
-import * as zlib from "zlib";
 
 const log = debuglog("static");
 
@@ -35,7 +35,7 @@ export async function findStaticFilesToInclude<
   const keys: (keyof Files)[] = Object.keys(opts.files);
 
   for (let key of keys) {
-    const filePath = opts.files[key];
+    const filePath = opts.files[key]!;
     const fullPath = path.join(__dirname, filePath);
     const parsed = path.parse(fullPath);
     const containingFolder = await fs.readdir(parsed.dir);
