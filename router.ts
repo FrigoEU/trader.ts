@@ -103,6 +103,7 @@ export type InternalSpec<Context, Params, Token> = {
   returns: "sse" | "html" | Codec<any> | null;
   run: (
     opts: RunOptions,
+    ctx: Context,
     req: ServerRequest,
     res: ServerResponse,
     p: Params
@@ -138,12 +139,9 @@ const mainFileName = require.main?.filename || "";
 const runningInTest = mainFileName.includes("alsatian");
 
 export class Router<Context> {
-  private context: Context;
   private specs: InternalSpec<Context, any, any>[] = [];
 
-  constructor(context: Context) {
-    this.context = context;
-  }
+  constructor() {}
 
   // private handleAuthorization<NeedsAuth extends boolean>(
   //   redirectUrl: string | null,
@@ -338,7 +336,7 @@ export class Router<Context> {
   serverSentEvents<Params, Returns, Token>(
     newSpec: SSESpec<Params, Returns[]>,
     needsAuthorization: authfunc<Context, Token, Params>,
-    run: (context: Context, newItem: (toPush: Returns[]) => void) => void,
+    run: (newItem: (toPush: Returns[]) => void) => void,
     filter: (p: Params, r: Returns) => boolean,
     removeItemsFromCacheAfterMinutes: number
   ): void {
@@ -363,7 +361,7 @@ export class Router<Context> {
     // We always do this processing, even if we don't have any subscriptions,
     // because there might be a client trying to reconnect that will want those
     // items once it's got its connection back up
-    run(this.context, function newItem(toPush: Returns[]): void {
+    run(function newItem(toPush: Returns[]): void {
       // TODO what if newlines in JSON payload?
       let i = 0;
       const eventId = myLastEventId + 1;
@@ -511,6 +509,7 @@ export class Router<Context> {
       tags: [],
       run: function (
         _runOpts: RunOptions,
+        ctx: Context,
         req: ServerRequest,
         res: ServerResponse,
         p: Params
@@ -527,7 +526,7 @@ export class Router<Context> {
               | [number, OutgoingHttpHeaders],
               Token
             >
-          > = needsAuthorization(req, router.context, p) as Promise<
+          > = needsAuthorization(req, ctx, p) as Promise<
             Either<
               | string
               | { tag: "redirect"; redirectUrl: string }
@@ -557,7 +556,7 @@ export class Router<Context> {
                 },
                 Right: (token) => {
                   // const start = process.hrtime();
-                  run(router.context, p, b, token, req, res)
+                  run(ctx, p, b, token, req, res)
                     // .then(function () {
                     //   const end = process.hrtime();
                     //   const duration =
@@ -635,7 +634,12 @@ export class Router<Context> {
    * }).listen(6666);
    */
 
-  run(opts: RunOptions, req: ServerRequest, res: ServerResponse): boolean {
+  run(
+    opts: RunOptions,
+    ctx: Context,
+    req: ServerRequest,
+    res: ServerResponse
+  ): boolean {
     const url = req.url;
 
     // This might look slow, but it's actually really fast.
@@ -646,7 +650,7 @@ export class Router<Context> {
       if (spec.method.toLowerCase() === req.method?.toLowerCase()) {
         const parsed = spec.route.parse(url || "");
         if (parsed !== null) {
-          spec.run(opts, req, res, parsed);
+          spec.run(opts, ctx, req, res, parsed);
           return true;
         }
       }
