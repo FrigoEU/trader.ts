@@ -516,7 +516,7 @@ export function checkBox(opts: {
 export function numberBox(
   initialVal?: number,
   opts?: {
-    label?: string;
+    label?: string | HTMLElement;
     constraint?: "positive" | "negative";
     constraintLabel?: string;
     step?: number;
