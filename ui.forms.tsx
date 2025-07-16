@@ -541,14 +541,12 @@ export function numberBox(
       ) as HTMLInputElement
     );
     i.oninput = () => rawS.set(i.value);
-    return opts?.label ? (
-      <label>
-        <div className="label-text">{opts.label}</div>
-        {i}
-      </label>
-    ) : (
-      i
-    );
+
+    return standardinputs.wrapWithLabel(
+      opts?.label,
+      parsedS,
+      <input type="number" step={opts?.step || 1} value={rawS.get()} />
+    ) as HTMLInputElement;
   }
 
   syncRawAndParsing({
