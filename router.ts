@@ -143,60 +143,6 @@ export class Router<Context> {
 
   constructor() {}
 
-  // private handleAuthorization<NeedsAuth extends boolean>(
-  //   redirectUrl: string | null,
-  //   needsAuthorization: NeedsAuth,
-  //   req: ServerRequest,
-  //   res: ServerResponse,
-  //   allowRedirectToDefault: boolean,
-  //   cont: (token: NeedsAuth extends true ? LoginToken : null) => void
-  // ): void {
-  //   const router = this;
-  //   if (needsAuthorization) {
-  //     (router.authFunc as authfunc<Context, LoginToken>)(
-  //       /* safe because of previous check */ req,
-  //       router.context
-  //     )
-  //       .then(function (authorizationRes) {
-  //         authorizationRes.caseOf({
-  //           Left: (error) => {
-  //             if (typeof error === "string") {
-  //               if (redirectUrl !== null && allowRedirectToDefault) {
-  //                 res.writeHead(302, { Location: redirectUrl });
-  //                 res.end();
-  //               } else {
-  //                 res.writeHead(401, { "Content-Type": "text/plain" });
-  //                 res.write("Failed to authorize: " + error);
-  //                 res.end();
-  //               }
-  //             } else {
-  //               res.writeHead(error[0], error[1]);
-  //               res.end();
-  //             }
-  //           },
-  //           Right: (token) =>
-  //             cont(token as NeedsAuth extends true ? LoginToken : null),
-  //         });
-  //       })
-  //       .catch(function (err) {
-  //         res.writeHead(500, { "Content-Type": "text/plain" });
-  //         res.write("Server error: " + err);
-  //         res.end();
-  //         console.error(
-  //           "Encountered error during run function of authorization."
-  //         );
-  //         console.error(`Incoming url: ${req.url}`);
-  //         console.error(`Headers: ${JSON.stringify(req.headers)}`);
-  //         console.error(`Server error: ${err}`);
-  //         if ("detail" in err) {
-  //           console.error(`Error detail: ${err.detail}`);
-  //         }
-  //       });
-  //   } else {
-  //     cont(null as NeedsAuth extends true ? LoginToken : null);
-  //   }
-  // }
-
   private getBody<Body>(
     codec: Codec<Body> | null,
     req: ServerRequest,
@@ -221,7 +167,7 @@ export class Router<Context> {
             res.write("Error decoding body: " + error);
             res.end();
             console.error("Encountered error during body decoding.");
-            console.error(`Incoming url: ${req.url}`);
+            console.error(`Incoming url: ${req.headers.host}${req.url}`);
             console.error(`Incoming body: ${data}`);
             console.error(`Error: ${error}`);
           },
@@ -581,7 +527,9 @@ export class Router<Context> {
                       if (!runningInTest) {
                         console.error("");
                         console.error("Encountered error during run function.");
-                        console.error(`Incoming url: ${req.url}`);
+                        console.error(
+                          `Incoming url: ${req.headers.host}${req.url}`
+                        );
                         console.error(
                           `Matched route: ${newSpec.route.__rawUrl}`
                         );
@@ -604,7 +552,7 @@ export class Router<Context> {
               console.error(
                 "Encountered error during run function of authorization."
               );
-              console.error(`Incoming url: ${req.url}`);
+              console.error(`Incoming url: ${req.headers.host}${req.url}`);
               console.error(`Headers: ${JSON.stringify(req.headers)}`);
               console.error(`Server error: ${err}`);
               if ("detail" in err) {
