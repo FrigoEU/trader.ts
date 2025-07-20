@@ -54,8 +54,11 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
   public build(opts?: {
     render: (
-      preRendered: {
+      renderedFields: {
         [k in keyof ParsedScope]: () => HTMLElement | HTMLElement[];
+      },
+      parsingStates: {
+        [k in keyof ParsedScope]: Source<Parsing<ParsedScope[k]>>;
       }
     ) => HTMLElement | HTMLElement[];
   }): Field<ParsedScope> {
@@ -220,8 +223,8 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
           })
         );
         // TODO: setup/cleanup sequence is not OK
-        const customRenderFunc = opts?.render || null;
-        if (customRenderFunc === null) {
+        const renderFunc = opts?.render || null;
+        if (renderFunc === null) {
           const renderedFields = [];
           for (let fieldName of fieldNames) {
             const fieldS = currentStatusOfFieldsS[fieldName].field;
@@ -253,7 +256,15 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
                 }
               });
           }
-          return customRenderFunc(renderedFields);
+          const sourcesRecord = {} as {
+            [fieldName in keyof ParsedScope]: Source<
+              Parsing<ParsedScope[fieldName]>
+            >;
+          };
+          for (const fieldName of fieldNames) {
+            sourcesRecord[fieldName] = currentStatusOfFieldsS[fieldName].source;
+          }
+          return renderFunc(renderedFields, sourcesRecord);
         }
       },
     };
