@@ -475,6 +475,7 @@ export function constantField<T>(
 export function checkBox(opts: {
   initialVal: boolean;
   label: string | HTMLElement;
+  surroundingLabel: string | HTMLElement;
   style?: string;
   class?: string;
   disabled?: boolean;
@@ -508,13 +509,17 @@ export function checkBox(opts: {
       parsedToRaw: (t) => t,
     });
 
-    return wrapInputWithHasErrorDynClass(
+    const i = wrapInputWithHasErrorDynClass(
       parsedS,
       standardinputs.checkbox({
         ...opts,
         source: rawS,
       })
     );
+
+    return opts.surroundingLabel
+      ? standardinputs.wrapWithLabel(opts.surroundingLabel, parsedS, i)
+      : i;
   }
 
   return Promise.resolve({
