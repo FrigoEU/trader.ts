@@ -59,7 +59,8 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       },
       parsingStates: {
         [k in keyof ParsedScope]: Source<Parsing<ParsedScope[k]>>;
-      }
+      },
+      mainSource: Source<Parsing<ParsedScope>>
     ) => HTMLElement | HTMLElement[];
   }): Field<ParsedScope> {
     const cleanups: (() => void)[] = [];
@@ -264,7 +265,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
           for (const fieldName of fieldNames) {
             sourcesRecord[fieldName] = currentStatusOfFieldsS[fieldName].source;
           }
-          return renderFunc(renderedFields, sourcesRecord);
+          return renderFunc(renderedFields, sourcesRecord, mainSource);
         }
       },
     };
