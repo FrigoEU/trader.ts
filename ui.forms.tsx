@@ -559,18 +559,17 @@ export function numberBox(
       parsedToRaw: (n) => n.toString(),
     });
 
-    const i = wrapInputWithHasErrorDynClass(
-      parsedS,
-      (
-        <input type="number" step={opts?.step || 1} value={rawS.get()} />
-      ) as HTMLInputElement
-    );
+    const i = (
+      <input type="number" step={opts?.step || 1} value={rawS.get()} />
+    ) as HTMLInputElement;
     i.oninput = () => rawS.set(i.value);
+
+    const wrapped = wrapInputWithHasErrorDynClass(parsedS, i);
 
     return standardinputs.wrapWithLabel(
       opts?.label,
       parsedS,
-      <input type="number" step={opts?.step || 1} value={rawS.get()} />
+      wrapped
     ) as HTMLInputElement;
   }
 
