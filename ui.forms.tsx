@@ -428,16 +428,16 @@ export function dateBox(opts: {
     }
   }
 
-  syncRawAndParsing({
-    rawS,
-    parsingS,
-    parse,
-    parsedToRaw: (r) => {
-      return r.toString();
-    },
-  });
-
   function render() {
+    syncRawAndParsing({
+      rawS,
+      parsingS,
+      parse,
+      parsedToRaw: (r) => {
+        return r.toString();
+      },
+    });
+
     if (opts.onChange) {
       parsingS.observe((s) =>
         s.tag === "parsed" ? opts.onChange!(s.parsed) : {}
@@ -550,6 +550,15 @@ export function numberBox(
   );
 
   function render() {
+    syncRawAndParsing({
+      rawS,
+      parsingS: parsedS,
+      parse: (n) => {
+        return parseNumberInput(n, opts || {});
+      },
+      parsedToRaw: (n) => n.toString(),
+    });
+
     const i = wrapInputWithHasErrorDynClass(
       parsedS,
       (
@@ -564,15 +573,6 @@ export function numberBox(
       <input type="number" step={opts?.step || 1} value={rawS.get()} />
     ) as HTMLInputElement;
   }
-
-  syncRawAndParsing({
-    rawS,
-    parsingS: parsedS,
-    parse: (n) => {
-      return parseNumberInput(n, opts || {});
-    },
-    parsedToRaw: (n) => n.toString(),
-  });
 
   return Promise.resolve({
     s: parsedS,
@@ -739,19 +739,24 @@ export function selectBox<T>(opts: {
     }
   }
 
-  if (opts?.previewS) {
-    scheduleForCleanup(
-      parsedS.observe((s) => {
-        if (s.tag === "parsed") {
-          opts!.previewS!.set(s.parsed as T);
-        }
-      })
-    );
-  }
-
-  syncRawAndParsing({ rawS, parsingS: parsedS, parse, parsedToRaw: opts.show });
-
   function render() {
+    syncRawAndParsing({
+      rawS,
+      parsingS: parsedS,
+      parse,
+      parsedToRaw: opts.show,
+    });
+
+    if (opts?.previewS) {
+      scheduleForCleanup(
+        parsedS.observe((s) => {
+          if (s.tag === "parsed") {
+            opts!.previewS!.set(s.parsed as T);
+          }
+        })
+      );
+    }
+
     function renderOpt(opt: T) {
       return (
         <option
