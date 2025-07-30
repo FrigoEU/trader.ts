@@ -24,36 +24,44 @@ export function rpc<Parameters, Body, Returns>(
     signal: controller.signal,
   }).then(
     (res): Promise<Returns> => {
-      if (res.status === 200) {
-        if (res.headers.get("content-type") === "application/json") {
-          return res.json().then(
-            (j): Promise<Returns> => {
-              const decodeRes = spec.returns.decode(j);
-              return decodeRes.caseOf({
-                Left: (err: string) =>
-                  Promise.reject(
-                    `Failed to decode result of rpc call to ${url}: ${err}`
-                  ),
-                Right: (decoded: Returns) => Promise.resolve(decoded),
-              });
-            }
-          );
-        } else {
-          return Promise.reject(
-            `Request succeeded but no JSON payload found: ${url}`
-          );
-        }
-      } else {
-        if (res.headers.get("content-type") === "application/json") {
-          return res
-            .json()
-            .then((j) => Promise.reject(res.status + ": " + JSON.stringify(j)));
-        } else if (res.headers.get("content-type") === "text/plain") {
-          return res.text().then((j) => Promise.reject(res.status + ": " + j));
-        } else {
-          return Promise.reject(res.status.toString() + " " + res.statusText);
-        }
-      }
+      return handleRpcResponse(spec, url, res);
     }
   );
+}
+
+export function handleRpcResponse<Parameters, Body, Returns>(
+  spec: APISpec<Parameters, Body, Returns>,
+  url: string,
+  res: Response
+) {
+  if (res.status === 200) {
+    if (res.headers.get("content-type") === "application/json") {
+      return res.json().then(
+        (j): Promise<Returns> => {
+          const decodeRes = spec.returns.decode(j);
+          return decodeRes.caseOf({
+            Left: (err: string) =>
+              Promise.reject(
+                `Failed to decode result of rpc call to ${url}: ${err}`
+              ),
+            Right: (decoded: Returns) => Promise.resolve(decoded),
+          });
+        }
+      );
+    } else {
+      return Promise.reject(
+        `Request succeeded but no JSON payload found: ${url}`
+      );
+    }
+  } else {
+    if (res.headers.get("content-type") === "application/json") {
+      return res
+        .json()
+        .then((j) => Promise.reject(res.status + ": " + JSON.stringify(j)));
+    } else if (res.headers.get("content-type") === "text/plain") {
+      return res.text().then((j) => Promise.reject(res.status + ": " + j));
+    } else {
+      return Promise.reject(res.status.toString() + " " + res.statusText);
+    }
+  }
 }
