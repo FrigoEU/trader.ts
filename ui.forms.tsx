@@ -80,6 +80,35 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
     log("Making current status sources");
 
+    const runFieldCalcQueue = new Set<keyof ParsedScope>();
+    let recalcMainSourceTimer: null | number = null;
+    let runFieldCalcTimer: null | number = null;
+
+    function queueRunFieldCalc(a: keyof ParsedScope) {
+      runFieldCalcQueue.add(a);
+      if (runFieldCalcTimer !== null) {
+        window.clearTimeout(runFieldCalcTimer);
+      }
+      runFieldCalcTimer = window.setTimeout(() => {
+        runFieldCalcTimer = null;
+        const current = runFieldCalcQueue.keys();
+        for (let curr of current) {
+          runFieldCalcQueue.delete(curr);
+          runFieldCalc(curr);
+        }
+      });
+    }
+
+    function queueRecalcMainSource() {
+      if (recalcMainSourceTimer !== null) {
+        window.clearTimeout(recalcMainSourceTimer);
+      }
+      recalcMainSourceTimer = window.setTimeout(() => {
+        recalcMainSourceTimer = null;
+        recalcMainSource();
+      }, 1);
+    }
+
     for (let fieldName of fieldNames) {
       // Setting up a collection of sources where we always have the current "Parsing" value of each field
       const currentStatusS: typeof currentStatusOfFieldsS[typeof fieldName] = {
@@ -92,8 +121,9 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       currentStatusOfFieldsS[fieldName] = currentStatusS;
 
       // Whenever these change -> update the main source
+      cleanups.push(currentStatusS.field.observe(queueRecalcMainSource));
       cleanups.push(
-        currentStatusS.source.observe(recalcMainSource) // TODO optim this so we don't always need to iterate through every field? Fairly complicated
+        currentStatusS.source.observe(queueRecalcMainSource) // TODO optim this so we don't always need to iterate through every field? Fairly complicated
       );
 
       // For every field that is observing this field -> trigger recalculation when this one changes
@@ -101,7 +131,10 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         const fieldCalc2 = this.fieldCalculators[fieldName2];
         if (fieldCalc2.dependsOn.includes(fieldName)) {
           cleanups.push(
-            currentStatusS.source.observe(() => runFieldCalc(fieldName2))
+            currentStatusS.field.observe(() => queueRunFieldCalc(fieldName2))
+          );
+          cleanups.push(
+            currentStatusS.source.observe(() => queueRunFieldCalc(fieldName2))
           );
         }
       }
