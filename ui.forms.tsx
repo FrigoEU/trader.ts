@@ -81,15 +81,15 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
     log("Making current status sources");
 
     const runFieldCalcQueue = new Set<keyof ParsedScope>();
-    let recalcMainSourceTimer: null | number = null;
-    let runFieldCalcTimer: null | number = null;
+    let recalcMainSourceTimer: null | number | NodeJS.Timeout = null;
+    let runFieldCalcTimer: null | number | NodeJS.Timeout = null;
 
     function queueRunFieldCalc(a: keyof ParsedScope) {
       runFieldCalcQueue.add(a);
       if (runFieldCalcTimer !== null) {
-        window.clearTimeout(runFieldCalcTimer);
+        clearTimeout(runFieldCalcTimer);
       }
-      runFieldCalcTimer = window.setTimeout(() => {
+      runFieldCalcTimer = setTimeout(() => {
         runFieldCalcTimer = null;
         const current = runFieldCalcQueue.keys();
         for (let curr of current) {
@@ -101,9 +101,9 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
 
     function queueRecalcMainSource() {
       if (recalcMainSourceTimer !== null) {
-        window.clearTimeout(recalcMainSourceTimer);
+        clearTimeout(recalcMainSourceTimer);
       }
-      recalcMainSourceTimer = window.setTimeout(() => {
+      recalcMainSourceTimer = setTimeout(() => {
         recalcMainSourceTimer = null;
         recalcMainSource();
       }, 1);
