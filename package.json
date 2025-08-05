@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.9.36",
+  "version": "1.9.37",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
@@ -13,7 +13,7 @@
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "2.1.0",
     "rambda": "^9.2.0",
-    "trader-hyperscript": "^2.0.9"
+    "trader-hyperscript": "^2.0.10"
   },
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation",
