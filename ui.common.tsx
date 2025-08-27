@@ -273,17 +273,27 @@ export function checkbox(opts: {
 export function selectbox<T extends string>(opts: {
   source: Source<T>;
   error?: Source<string | null>;
-  options: { value: T; label: string }[];
+  options: (
+    | { value: T; label: string }
+    | { groupname: string; items: { value: T; label: string }[] }
+  )[];
   class?: string;
   style?: string;
   label?: string;
   oninput?: () => void;
 }) {
+  function makeOptionHtml(o: { value: T; label: string }) {
+    return <option value={o.value}>{o.label}</option>;
+  }
   const select = (
     <select className={opts.class || ""} style={opts.style || ""}>
-      {opts.options.map((o) => (
-        <option value={o.value}>{o.label}</option>
-      ))}
+      {opts.options.map((o) =>
+        "groupname" in o ? (
+          <optgroup label={o.groupname}>{o.items.map(makeOptionHtml)}</optgroup>
+        ) : (
+          makeOptionHtml(o)
+        )
+      )}
     </select>
   ) as HTMLSelectElement;
 
