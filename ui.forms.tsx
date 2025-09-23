@@ -543,17 +543,17 @@ export function checkBox(opts: {
       parsedToRaw: (t) => t,
     });
 
-    const i = wrapInputWithHasErrorDynClass(
+    return wrapInputWithHasErrorDynClass(
       parsedS,
-      standardinputs.checkbox({
-        ...opts,
-        source: rawS,
-      })
+      standardinputs.wrapWithLabel(
+        opts.surroundingLabel,
+        parsedS,
+        standardinputs.checkbox({
+          ...opts,
+          source: rawS,
+        })
+      )
     );
-
-    return opts.surroundingLabel
-      ? standardinputs.wrapWithLabel(opts.surroundingLabel, parsedS, i)
-      : i;
   }
 
   return Promise.resolve({
@@ -598,13 +598,10 @@ export function numberBox(
     ) as HTMLInputElement;
     i.oninput = () => rawS.set(i.value);
 
-    const wrapped = wrapInputWithHasErrorDynClass(parsedS, i);
-
-    return standardinputs.wrapWithLabel(
-      opts?.label,
+    return wrapInputWithHasErrorDynClass(
       parsedS,
-      wrapped
-    ) as HTMLInputElement;
+      standardinputs.wrapWithLabel(opts?.label, parsedS, i)
+    );
   }
 
   return Promise.resolve({
@@ -692,20 +689,13 @@ export function numberBoxOptional(
   });
 
   function render() {
-    const i = wrapInputWithHasErrorDynClass(
-      parsedS,
-      (
-        <input type="number" step={opts?.step || 1} value={rawS.get()} />
-      ) as HTMLInputElement
-    );
+    const i = (
+      <input type="number" step={opts?.step || 1} value={rawS.get()} />
+    ) as HTMLInputElement;
     i.oninput = () => rawS.set(i.value);
-    return opts?.label ? (
-      <label>
-        <div className="label-text">{opts.label}</div>
-        {i}
-      </label>
-    ) : (
-      i
+    return wrapInputWithHasErrorDynClass(
+      parsedS,
+      standardinputs.wrapWithLabel(opts?.label, parsedS, i) as HTMLInputElement
     );
   }
 
