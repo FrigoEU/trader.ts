@@ -1,6 +1,6 @@
 import { APISpec, SSESpec } from "./router";
 
-const timeoutMS = 10000;
+const defaultTimeoutMs = 10000;
 
 /**
  * Fire off an HTTP request to the APISpec with the provided params and body
@@ -15,7 +15,14 @@ export function rpc<Parameters, Body, Returns>(
   const url = spec.route.link(params);
 
   const controller = new AbortController();
-  setTimeout(() => controller.abort(), opts?.timeoutMS || timeoutMS);
+  const timeoutms = opts?.timeoutMS || defaultTimeoutMs;
+  setTimeout(
+    () =>
+      controller.abort(
+        `Call to ${url} took too long, timeout(ms) = ${timeoutms}`
+      ),
+    timeoutms
+  );
 
   return fetch(url, {
     method: spec.method,
