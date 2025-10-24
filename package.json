@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.9.47",
+  "version": "1.9.48",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
@@ -15,7 +15,7 @@
     "trader-hyperscript": "^2.0.16"
   },
   "peerDependencies": {
-    "@js-joda/core": "^5.5.x"
+    "@js-joda/core": "5.5.2"
   },
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation",
