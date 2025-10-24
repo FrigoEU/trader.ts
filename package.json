@@ -1,11 +1,10 @@
 {
   "name": "trader.ts",
-  "version": "1.9.46",
+  "version": "1.9.47",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {
-    "@js-joda/core": "^5.3.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
     "currency.js": "^2.0.4",
@@ -14,6 +13,9 @@
     "purify-ts": "2.1.0",
     "rambda": "^9.2.0",
     "trader-hyperscript": "^2.0.16"
+  },
+  "peerDependencies": {
+    "@js-joda/core": "^5.5.x"
   },
   "scripts": {
     "check": "tsc -p . --noEmit --noErrorTruncation",

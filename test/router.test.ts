@@ -8,7 +8,7 @@ import httpMocks from "node-mocks-http";
 import currency from "currency.js";
 
 test("Router tests", async function () {
-  const router = new Router({});
+  const router = new Router();
 
   // registerBogusRoutes(router);
 
@@ -77,6 +77,7 @@ test("Router tests", async function () {
   const spy1 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     {
       url: "/haha",
       method: "GET",
@@ -89,6 +90,7 @@ test("Router tests", async function () {
   const spy2 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: "/abc/def/666/ghi",
       method: "GET",
@@ -104,6 +106,7 @@ test("Router tests", async function () {
   const spy3 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: "/123/mytext",
       method: "GET",
@@ -119,6 +122,7 @@ test("Router tests", async function () {
   const sp4 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: "/withparams/mytext?param2=123",
       method: "GET",
@@ -134,6 +138,7 @@ test("Router tests", async function () {
   const sp5 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: currRoute.link({ curr: currency(12.25) }),
       method: "GET",
@@ -149,6 +154,7 @@ test("Router tests", async function () {
   const sp6 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: "/currency/12.25/ghi",
       method: "GET",
@@ -164,6 +170,7 @@ test("Router tests", async function () {
   const sp7 = makeSpy1();
   router.run(
     { redirectOnUnauthorizedPage: null },
+    {},
     httpMocks.createRequest({
       url: "/currency/haha/ghi",
       method: "GET",
@@ -177,6 +184,40 @@ test("Router tests", async function () {
 
   const end = performance.now();
   console.log("--- " + (end - start).toString() + "ms");
+});
+
+test("Route with fragment link", async function () {
+  const router = new Router();
+
+  router.custom(
+    apiSpec({
+      route: makeRoute("/abc#{id:string}"),
+      method: "GET",
+      body: null,
+      returns: c.nullType,
+    }),
+    async () => Right({}),
+    async function (_ctx, { id }, _b, _auth, _req, res) {
+      res.write(id.toString());
+      return undefined;
+    }
+  );
+
+  const sp = makeSpy1();
+  router.run(
+    { redirectOnUnauthorizedPage: null },
+    {},
+    httpMocks.createRequest({
+      url: "/abc#myname",
+      method: "GET",
+    }) as ServerRequest,
+    ({ write: sp } as unknown) as ServerResponse
+  );
+
+  await sleep(0);
+
+  testEq(sp.called, true);
+  testEq(sp.lastArg, "myname");
 });
 
 function makeSpy1() {
