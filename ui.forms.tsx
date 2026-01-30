@@ -265,7 +265,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
             renderedFields.push(
               dyn(fieldS, function (field) {
                 if (field === null) {
-                  return <span></span>;
+                  return [];
                 } else {
                   return field.render();
                 }
@@ -284,7 +284,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
             renderedFields[fieldName] = () =>
               dyn(fieldS, function (field) {
                 if (field === null) {
-                  return <span></span>;
+                  return [];
                 } else {
                   return field.render();
                 }
