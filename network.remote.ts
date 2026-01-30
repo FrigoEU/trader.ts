@@ -7,9 +7,10 @@ export function rpcIntoRemote<Parameters, Body, Returns>(
   spec: APISpec<Parameters, Body, Returns>,
   params: Parameters,
   b: Body,
-  s: Source<Remote<Returns>>
+  s: Source<Remote<Returns>>,
+  opts?: { timeoutMS?: number }
 ): Promise<Returns> {
-  return rpc(spec, params, b).then(
+  return rpc(spec, params, b, opts).then(
     (res) => {
       s.set({ tag: "loaded", item: res });
       return res;
