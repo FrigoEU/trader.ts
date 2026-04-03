@@ -514,15 +514,28 @@ export function checkBox(opts: {
   class?: string;
   disabled?: boolean;
   requiredTrue?: true;
+  saveAndLoadInitialValToLocalStorage?: string;
 }): Promise<Field<boolean>> {
-  const rawS = new Source(opts.initialVal);
+  const lsKey = opts?.saveAndLoadInitialValToLocalStorage
+    ? "trader_forms_checkbox_" + opts.saveAndLoadInitialValToLocalStorage
+    : null;
+  const fromLs = lsKey ? localStorage.getItem(lsKey) : null;
+  const initial = !isNil(fromLs)
+    ? fromLs === "true"
+      ? true
+      : fromLs === "false"
+      ? false
+      : opts.initialVal
+    : opts.initialVal;
+
+  const rawS = new Source(initial);
 
   const parsedS: Source<Parsing<boolean>> = new Source(
-    opts.requiredTrue === true && opts.initialVal === false
+    opts.requiredTrue === true && rawS.get() === false
       ? { tag: "initial" }
       : {
           tag: "parsed",
-          parsed: opts.initialVal,
+          parsed: rawS.get(),
         }
   );
 
@@ -531,6 +544,9 @@ export function checkBox(opts: {
   ): { tag: "parsed"; parsed: boolean } | { tag: "err" } {
     if (opts.requiredTrue === true && raw === false) {
       return { tag: "err" };
+    }
+    if (!isNil(lsKey)) {
+      localStorage.setItem(lsKey, raw === true ? "true" : "false");
     }
     return { tag: "parsed", parsed: raw };
   }
