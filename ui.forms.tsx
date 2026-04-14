@@ -1000,7 +1000,7 @@ function isNil(value: any): value is null | undefined {
   return value === null || value === undefined;
 }
 
-function wrapInputWithHasErrorDynClass<T, H extends HTMLElement>(
+export function wrapInputWithHasErrorDynClass<T, H extends HTMLElement>(
   parsedS: Source<Parsing<T>>,
   i: H
 ) {
