@@ -4,6 +4,23 @@ export { Source } from "./types/source";
 type unsubberList = (unsubber | unsubberList)[];
 let currentUnsubberList: null | unsubberList = null;
 
+export function hijackCleanup() {
+  const myParentUnsubberList = currentUnsubberList;
+  const myUnsubberList: unsubberList = [];
+  if (myParentUnsubberList !== null) {
+    myParentUnsubberList.push(myUnsubberList);
+  }
+  currentUnsubberList = myUnsubberList;
+  return {
+    cleanup: function () {
+      cleanupUnsubberList(myUnsubberList);
+    },
+    done: function () {
+      currentUnsubberList = myParentUnsubberList;
+    },
+  };
+}
+
 export function scheduleForCleanup(f: unsubber) {
   if (currentUnsubberList === null) {
     console.info("scheduleForCleanup called without currentUnsubber!", f);
