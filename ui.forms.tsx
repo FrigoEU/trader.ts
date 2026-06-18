@@ -75,6 +75,10 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         source: Source<Parsing<ParsedScope[fieldName]>>;
         field: Source<null | Field<ParsedScope[fieldName]>>;
         cleanups: (() => void)[];
+        // Monotonic counter, bumped on every runFieldCalc. Used to discard the
+        // result of a stale async calc when a newer one has been kicked off in
+        // the meantime (otherwise the first-resolved calc wins, not the latest).
+        runGeneration: number;
       };
     };
 
@@ -117,6 +121,7 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         }),
         field: new Source(null),
         cleanups: [],
+        runGeneration: 0,
       };
       currentStatusOfFieldsS[fieldName] = currentStatusS;
 
@@ -149,6 +154,11 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
       curr.cleanups.length = 0;
       curr.field.set(null);
 
+      // Mark this as the latest run of this field. Any async calc that resolves
+      // after a newer run has started is stale and must be ignored, so the
+      // latest input wins rather than whichever request happens to return first.
+      const myGeneration = ++curr.runGeneration;
+
       const res = runFieldCalcImplementation(fieldCalc);
       if (res === null) {
         log(`Field ${String(fieldName)} not initialized`);
@@ -157,7 +167,10 @@ export class Form<ParsedScope extends { [fieldName: string]: any } = {}> {
         log(`Loading field ${String(fieldName)}`);
         curr.source.set({ tag: "loading" });
         res.then(function (field) {
-          if (curr.source.get().tag === "loading") {
+          if (
+            myGeneration === curr.runGeneration &&
+            curr.source.get().tag === "loading"
+          ) {
             log(`Loaded field ${String(fieldName)}`);
             curr.field.set(field);
 
