@@ -1,11 +1,10 @@
-import { test } from "node:test";
-import { Router, ServerRequest, ServerResponse, apiSpec } from "../router";
-import { makeRoute } from "../route";
-import { Right } from "purify-ts";
-import * as c from "purify-ts/Codec";
-import assert from "node:assert";
-import httpMocks from "node-mocks-http";
 import currency from "currency.js";
+import httpMocks from "node-mocks-http";
+import assert from "node:assert";
+import { test } from "node:test";
+import { Right } from "purify-ts";
+import { builtinEncoders, makeRoute } from "../route";
+import { Router, ServerRequest, ServerResponse, apiSpec } from "../router";
 
 test("Router tests", async function () {
   const router = new Router();
@@ -17,7 +16,7 @@ test("Router tests", async function () {
       route: makeRoute("/abc/def/{identifier:number}/ghi"),
       method: "GET",
       body: null,
-      returns: c.nullType,
+      returns: builtinEncoders.null,
     }),
     async () => Right({}),
     async function (_ctx, { identifier }, _b, _auth, _req, res) {
@@ -31,7 +30,7 @@ test("Router tests", async function () {
       route: makeRoute("/123/{text:string}"),
       method: "GET",
       body: null,
-      returns: c.nullType,
+      returns: builtinEncoders.null,
     }),
     async () => Right({}),
     async function (_ctx, { text }, _b, _auth, _req, res) {
@@ -47,7 +46,7 @@ test("Router tests", async function () {
       ),
       method: "GET",
       body: null,
-      returns: c.nullType,
+      returns: builtinEncoders.null,
     }),
     async () => Right({}),
     async function (_ctx, { text, param1, param2 }, _ps, _auth, _req, res) {
@@ -62,7 +61,7 @@ test("Router tests", async function () {
       route: currRoute,
       method: "GET",
       body: null,
-      returns: c.nullType,
+      returns: builtinEncoders.null,
     }),
     async () => Right({}),
     async function (_ctx, { curr }, _b, _auth, _req, res) {
@@ -194,7 +193,7 @@ test("Route with fragment link", async function () {
       route: makeRoute("/abc#{id:string}"),
       method: "GET",
       body: null,
-      returns: c.nullType,
+      returns: builtinEncoders.null,
     }),
     async () => Right({}),
     async function (_ctx, { id }, _b, _auth, _req, res) {
@@ -247,7 +246,7 @@ function registerBogusRoutes(router: Router<{}>) {
         ),
         method: "GET",
         body: null,
-        returns: c.nullType,
+        returns: builtinEncoders.null,
       }),
       async () => Right({}),
       async function (_ctx, _p, _b, _auth, _req, res) {

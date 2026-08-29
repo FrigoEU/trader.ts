@@ -270,7 +270,7 @@ export class Router<Context> {
       needsAuthorization,
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
-          const responseAsString = JSON.stringify(newSpec.returns.serialize(r));
+          const responseAsString = newSpec.returns.serialize(r); 
           writeDataWithOrWithoutCompression(req, res, responseAsString, opts);
         });
       }
@@ -329,9 +329,7 @@ export class Router<Context> {
         return run(ctx, p, b, auth, req, res, sendProgress)
           .then(function (r) {
             if (responded === false) {
-              const responseAsString = JSON.stringify(
-                newSpec.returns.serialize(r)
-              );
+              const responseAsString = newSpec.returns.serialize(r);
               writeDataWithOrWithoutCompression(
                 req,
                 res,
@@ -376,9 +374,7 @@ export class Router<Context> {
       toPush: Returns[],
       id: number
     ): string {
-      return `data:${JSON.stringify(
-        newSpec.returns.serialize(toPush)
-      )}\nid:${id}\n\n`;
+      return `data:${newSpec.returns.serialize(toPush)}\nid:${id}\n\n`;
     };
 
     // We immediately "start" the processing
