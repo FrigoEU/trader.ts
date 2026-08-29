@@ -1,4 +1,4 @@
-import { APISpec, SSESpec } from "./router";
+import { APISpec, APISpecWithProgress } from "./router";
 
 const defaultTimeoutMs = 10000;
 
@@ -26,12 +26,108 @@ export function rpc<Parameters, Body, Returns>(
 
   return fetch(url, {
     method: spec.method,
+    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
     body: spec.body === null ? undefined : spec.body.encode(b),
     credentials: "include",
     signal: controller.signal,
   }).then(
     (res): Promise<Returns> => {
       return handleRpcResponse(spec, url, res);
+    }
+  );
+}
+
+export function rpcWithProgress<Parameters, Body, Returns, Progress>(
+  spec: APISpecWithProgress<Parameters, Body, Returns, Progress>,
+  params: Parameters,
+  b: Body,
+  handleProgress: (p: Progress) => void
+): Promise<Returns> {
+  const url = spec.route.link(params);
+
+  return fetch(url, {
+    method: spec.method,
+    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
+    body: spec.body === null ? undefined : spec.body.encode(b),
+    credentials: "include",
+  }).then(
+    async (res): Promise<Returns> => {
+      if (
+        res.status === 200 &&
+        res.body &&
+        (res.headers.get("content-type") ?? "") === "text/event-stream"
+      ) {
+        const b = res.body;
+        return new Promise(async (resolve, reject) => {
+          const reader = b.getReader();
+          const decoder = new TextDecoder("utf-8");
+
+          let buffer = "";
+
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+
+              // Process lines when double newlines (SSE boundary) are present
+              let boundary = buffer.indexOf("\n\n");
+              while (boundary !== -1) {
+                const block = buffer.slice(0, boundary);
+                buffer = buffer.slice(boundary + 2);
+
+                // Process individual SSE lines (data, event, id)
+                for (const line of block.split("\n")) {
+                  if (line.startsWith("progress:")) {
+                    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
+                    const data = line.replace("progress:", "");
+                    const decoded = spec.progress.decode(data);
+                    decoded.caseOf({
+                      Left: (e) => {
+                        reject(
+                          new Error(
+                            `Failed to parse progress data: ${data} - ${e}`
+                          )
+                        );
+                      },
+                      Right: (p) => handleProgress(p),
+                    });
+                  }
+
+                  if (line.startsWith("error:")) {
+                    const data = line.replace("error:", "");
+                    reject(new Error(data));
+                    return;
+                  }
+
+                  if (line.startsWith("response:")) {
+                    const data = line.replace("response:", "");
+                    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
+                    const decoded = spec.returns.decode(data);
+                    decoded.caseOf({
+                      Left: (e) => {
+                        reject(
+                          new Error(
+                            `Failed to parse result data: ${data} - ${e}`
+                          )
+                        );
+                      },
+                      Right: (p) => resolve(p),
+                    });
+                    return;
+                  }
+                }
+                boundary = buffer.indexOf("\n\n");
+              }
+            }
+          } finally {
+            reader.releaseLock();
+          }
+        });
+      } else {
+        return handleRpcResponse(spec, url, res);
+      }
     }
   );
 }

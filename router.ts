@@ -8,6 +8,7 @@ import { Codec, nullType } from "purify-ts/Codec";
 import { Either, Right } from "purify-ts/Either";
 import type { Route } from "./route";
 import { writeDataWithCompression } from "./router.static";
+import { checkAllCasesHandled, tryExtractErrorMessage } from "./utils";
 
 declare module "http" {
   interface ServerResponse {
@@ -69,11 +70,25 @@ export function apiSpec<UrlParams, Body, Returns>(
   return spec;
 }
 
+export function apiSpecWithProgress<UrlParams, Body, Returns, Progress>(
+  spec: APISpecWithProgress<UrlParams, Body, Returns, Progress>
+): APISpecWithProgress<UrlParams, Body, Returns, Progress> {
+  return spec;
+}
+
 export type APISpec<Params, Body, Returns> = {
   route: Route<Params>;
   method: HTTPMethod;
   body: Codec<Body> | null;
   returns: Codec<Returns>;
+};
+
+export type APISpecWithProgress<Params, Body, Returns, Progress> = {
+  route: Route<Params>;
+  method: HTTPMethod;
+  body: Codec<Body> | null;
+  returns: Codec<Returns>;
+  progress: Codec<Progress>;
 };
 
 // No-op function, just to check SSESpec creation and to infer types
@@ -257,17 +272,82 @@ export class Router<Context> {
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
           const responseAsString = JSON.stringify(newSpec.returns.encode(r));
-          if (opts?.dontCompress === true) {
-            res.writeHead(200, {
-              "Content-Type": "application/json",
-              "Content-Length": Buffer.byteLength(responseAsString),
-            });
-            res.end(responseAsString);
-          } else {
-            res.setHeader("Content-Type", "application/json");
-            writeDataWithCompression(req, res, responseAsString);
-          }
+          writeDataWithOrWithoutCompression(req, res, responseAsString, opts);
         });
+      }
+    );
+  }
+
+  apiWithProgress<Params, Body, Returns, Token, Progress>(
+    newSpec: APISpecWithProgress<Params, Body, Returns, Progress>,
+    needsAuthorization: authfunc<Context, Token, Params>,
+    run: (
+      context: Context,
+      p: Params,
+      b: Body,
+      auth: Token,
+      req: ServerRequest,
+      res: ServerResponse,
+      sendProgress: (p: Progress) => void
+    ) => Promise<Returns>,
+    opts?: { dontCompress?: boolean }
+  ): void {
+    this.custom<Params, Body, Returns, Token>(
+      newSpec,
+      needsAuthorization,
+      async function (ctx, p, b, auth, req, res) {
+        let responded = false;
+        function writeBack(
+          s:
+            | { tag: "progress"; p: Progress }
+            | { tag: "error"; error: string }
+            | { tag: "response"; r: Returns }
+        ) {
+          if (responded === false) {
+            res.writeHead(200, {
+              "Content-Type": "text/event-stream",
+              "Cache-Control": "no-cache",
+              Connection: "keep-alive",
+              "X-Accel-Buffering": "no",
+            });
+            res.write("\n"); // if we don't this, Chrome doesn't seem to "open" the connection correctly
+            responded = true;
+          }
+
+          if (s.tag === "progress") {
+            res.write(`progress:${newSpec.progress.encode(s.p)}\n\n`);
+          } else if (s.tag === "error") {
+            res.end(`error:${s.error}\n\n`);
+          } else if (s.tag === "response") {
+            res.end(`response:${newSpec.returns.encode(s.r)}\n\n`);
+          } else {
+            checkAllCasesHandled(s);
+          }
+        }
+        function sendProgress(p: Progress) {
+          writeBack({ tag: "progress", p });
+        }
+        return run(ctx, p, b, auth, req, res, sendProgress)
+          .then(function (r) {
+            if (responded === false) {
+              const responseAsString = JSON.stringify(
+                newSpec.returns.encode(r)
+              );
+              writeDataWithOrWithoutCompression(
+                req,
+                res,
+                responseAsString,
+                opts
+              );
+            } else {
+              writeBack({ tag: "response", r });
+            }
+          })
+          .catch(function (err) {
+            writeBack({ tag: "error", error: tryExtractErrorMessage(err) });
+            console.error("Error in api with progress");
+            reportError(newSpec, req, b, 0, err);
+          });
       }
     );
   }
@@ -524,23 +604,7 @@ export class Router<Context> {
                       });
                       res.write("Server error: " + error);
                       res.end();
-                      if (!runningInTest) {
-                        console.error("");
-                        console.error("Encountered error during run function.");
-                        console.error(
-                          `Incoming url: ${req.headers.host}${req.url}`
-                        );
-                        console.error(
-                          `Matched route: ${newSpec.route.__rawUrl}`
-                        );
-                        console.error(`Incoming body: ${JSON.stringify(b)}`);
-                        console.error(`Return code: ${returnCode}`);
-                        console.error(`Server error: ${error}`);
-                        if (error instanceof Error) {
-                          console.error(`Stacktrace: ${error.stack}`);
-                          console.error("");
-                        }
-                      }
+                      reportError(newSpec, req, b, returnCode, error);
                     });
                 },
               });
@@ -698,3 +762,43 @@ function takeRightWhile<T>(arr: T[], cb: (t: T) => boolean): T[] {
 export const noAuthorization: authfunc<any, null, any> = async function () {
   return Right(null);
 };
+
+function writeDataWithOrWithoutCompression(
+  req: ServerRequest,
+  res: ServerResponse,
+  responseAsString: string,
+  opts?: { dontCompress?: boolean }
+) {
+  if (opts?.dontCompress === true) {
+    res.writeHead(200, {
+      "Content-Type": "application/json",
+      "Content-Length": Buffer.byteLength(responseAsString),
+    });
+    res.end(responseAsString);
+  } else {
+    res.setHeader("Content-Type", "application/json");
+    writeDataWithCompression(req, res, responseAsString);
+  }
+}
+
+function reportError(
+  newSpec: { route: Route<any> },
+  req: IncomingMessage,
+  b: any,
+  returnCode: number,
+  error: any
+) {
+  if (!runningInTest) {
+    console.error("");
+    console.error("Encountered error during run function.");
+    console.error(`Incoming url: ${req.headers.host}${req.url}`);
+    console.error(`Matched route: ${newSpec.route.__rawUrl}`);
+    console.error(`Incoming body: ${JSON.stringify(b)}`);
+    console.error(`Return code: ${returnCode}`);
+    console.error(`Server error: ${error}`);
+    if (error instanceof Error) {
+      console.error(`Stacktrace: ${error.stack}`);
+      console.error("");
+    }
+  }
+}
