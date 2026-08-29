@@ -4,7 +4,7 @@ import type {
   OutgoingHttpHeaders,
   ServerResponse as ServerResponse_,
 } from "node:http";
-import { Codec, nullType } from "purify-ts/Codec";
+import { nullType } from "purify-ts/Codec";
 import { Either, Right } from "purify-ts/Either";
 import type { Route } from "./route";
 import { writeDataWithCompression } from "./router.static";
@@ -76,19 +76,24 @@ export function apiSpecWithProgress<UrlParams, Body, Returns, Progress>(
   return spec;
 }
 
+interface CodecString<T> {
+  decode: (input: string) => Either<string, T>;
+  encode: (input: T) => string;
+}
+
 export type APISpec<Params, Body, Returns> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: Codec<Body> | null;
-  returns: Codec<Returns>;
+  body: CodecString<Body> | null;
+  returns: CodecString<Returns>;
 };
 
 export type APISpecWithProgress<Params, Body, Returns, Progress> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: Codec<Body> | null;
-  returns: Codec<Returns>;
-  progress: Codec<Progress>;
+  body: CodecString<Body> | null;
+  returns: CodecString<Returns>;
+  progress: CodecString<Progress>;
 };
 
 // No-op function, just to check SSESpec creation and to infer types
@@ -100,7 +105,7 @@ export function sseSpec<UrlParams, Returns>(
 
 export type SSESpec<Params, Returns> = {
   route: Route<Params>;
-  returns: Codec<Returns>;
+  returns: CodecString<Returns>;
 };
 
 export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
@@ -114,8 +119,8 @@ export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
 export type InternalSpec<Context, Params, Token> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: Codec<any> | null;
-  returns: "sse" | "html" | Codec<any> | null;
+  body: CodecString<any> | null;
+  returns: "sse" | "html" | CodecString<any> | null;
   run: (
     opts: RunOptions,
     ctx: Context,
@@ -159,7 +164,7 @@ export class Router<Context> {
   constructor() {}
 
   private getBody<Body>(
-    codec: Codec<Body> | null,
+    codec: CodecString<Body> | null,
     req: ServerRequest,
     res: ServerResponse,
     cont: (body: Body) => void

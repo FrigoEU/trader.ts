@@ -139,7 +139,7 @@ export function handleRpcResponse<Parameters, Body, Returns>(
 ) {
   if (res.status === 200) {
     if (res.headers.get("content-type") === "application/json") {
-      return res.json().then(
+      return res.text().then(
         (j): Promise<Returns> => {
           const decodeRes = spec.returns.decode(j);
           return decodeRes.caseOf({
