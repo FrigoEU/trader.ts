@@ -64,7 +64,9 @@ export type HTTPMethod = "GET" | "PUT" | "POST" | "DELETE";
 
 // No-op function, just to check APISpec creation and to infer types
 export function apiSpec<UrlParams, Body, Returns>(
-  spec: APISpec<UrlParams, Body, Returns>
+  spec: APISpec<UrlParams, Body, Returns>& {
+    progress?: "use apiSpecWithProgress";
+  }
 ): APISpec<UrlParams, Body, Returns> {
   return spec;
 }

@@ -7,7 +7,9 @@ const defaultTimeoutMs = 10000;
  * For now, this only works *ClientSide* as it requires a global "fetch" function
  */
 export function rpc<Parameters, Body, Returns>(
-  spec: APISpec<Parameters, Body, Returns>,
+  spec: APISpec<Parameters, Body, Returns> & {
+    progress?: "use rpcWithProgress";
+  },
   params: Parameters,
   b: Body,
   opts?: { timeoutMS?: number }
