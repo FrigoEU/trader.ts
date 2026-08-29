@@ -132,7 +132,7 @@ export function serverSentEventsConnectDontWait<Params, Returns>(
       }
       let decoded;
       try {
-        decoded = spec.returns.decode(event.data as string);
+        decoded = spec.returns.parse(event.data as string);
       } catch (err) {
         console.error(
           `Failed to parse data from SSE endpoint: ${spec.route.link(p)}: ${

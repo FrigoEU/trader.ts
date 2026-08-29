@@ -26,8 +26,7 @@ export function rpc<Parameters, Body, Returns>(
 
   return fetch(url, {
     method: spec.method,
-    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
-    body: spec.body === null ? undefined : spec.body.encode(b),
+    body: spec.body === null ? undefined : spec.body.serialize(b),
     credentials: "include",
     signal: controller.signal,
   }).then(
@@ -47,8 +46,7 @@ export function rpcWithProgress<Parameters, Body, Returns, Progress>(
 
   return fetch(url, {
     method: spec.method,
-    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
-    body: spec.body === null ? undefined : spec.body.encode(b),
+    body: spec.body === null ? undefined : spec.body.serialize(b),
     credentials: "include",
   }).then(
     async (res): Promise<Returns> => {
@@ -80,9 +78,8 @@ export function rpcWithProgress<Parameters, Body, Returns, Progress>(
                 // Process individual SSE lines (data, event, id)
                 for (const line of block.split("\n")) {
                   if (line.startsWith("progress:")) {
-                    // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
                     const data = line.replace("progress:", "");
-                    const decoded = spec.progress.decode(data);
+                    const decoded = spec.progress.parse(data);
                     decoded.caseOf({
                       Left: (e) => {
                         reject(
@@ -104,7 +101,7 @@ export function rpcWithProgress<Parameters, Body, Returns, Progress>(
                   if (line.startsWith("response:")) {
                     const data = line.replace("response:", "");
                     // TODO: I'm screwing with decodings here, the encode/decode of magicCodec also does stringification
-                    const decoded = spec.returns.decode(data);
+                    const decoded = spec.returns.parse(data);
                     decoded.caseOf({
                       Left: (e) => {
                         reject(
@@ -141,9 +138,9 @@ export function handleRpcResponse<Parameters, Body, Returns>(
     if (res.headers.get("content-type") === "application/json") {
       return res.text().then(
         (j): Promise<Returns> => {
-          const decodeRes = spec.returns.decode(j);
+          const decodeRes = spec.returns.parse(j);
           return decodeRes.caseOf({
-            Left: (err: string) =>
+            Left: (err: Error) =>
               Promise.reject(
                 `Failed to decode result of rpc call to ${url}: ${err}`
               ),

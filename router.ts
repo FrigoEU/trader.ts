@@ -4,9 +4,8 @@ import type {
   OutgoingHttpHeaders,
   ServerResponse as ServerResponse_,
 } from "node:http";
-import { nullType } from "purify-ts/Codec";
 import { Either, Right } from "purify-ts/Either";
-import type { Route } from "./route";
+import { builtinEncoders, type Encoder, type Route } from "./route";
 import { writeDataWithCompression } from "./router.static";
 import { checkAllCasesHandled, tryExtractErrorMessage } from "./utils";
 
@@ -76,24 +75,19 @@ export function apiSpecWithProgress<UrlParams, Body, Returns, Progress>(
   return spec;
 }
 
-interface CodecString<T> {
-  decode: (input: string) => Either<string, T>;
-  encode: (input: T) => string;
-}
-
 export type APISpec<Params, Body, Returns> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: CodecString<Body> | null;
-  returns: CodecString<Returns>;
+  body: Encoder<Body> | null;
+  returns: Encoder<Returns>;
 };
 
 export type APISpecWithProgress<Params, Body, Returns, Progress> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: CodecString<Body> | null;
-  returns: CodecString<Returns>;
-  progress: CodecString<Progress>;
+  body: Encoder<Body> | null;
+  returns: Encoder<Returns>;
+  progress: Encoder<Progress>;
 };
 
 // No-op function, just to check SSESpec creation and to infer types
@@ -105,7 +99,7 @@ export function sseSpec<UrlParams, Returns>(
 
 export type SSESpec<Params, Returns> = {
   route: Route<Params>;
-  returns: CodecString<Returns>;
+  returns: Encoder<Returns>;
 };
 
 export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
@@ -119,8 +113,8 @@ export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
 export type InternalSpec<Context, Params, Token> = {
   route: Route<Params>;
   method: HTTPMethod;
-  body: CodecString<any> | null;
-  returns: "sse" | "html" | CodecString<any> | null;
+  body: Encoder<any> | null;
+  returns: "sse" | "html" | Encoder<any> | null;
   run: (
     opts: RunOptions,
     ctx: Context,
@@ -164,7 +158,7 @@ export class Router<Context> {
   constructor() {}
 
   private getBody<Body>(
-    codec: CodecString<Body> | null,
+    codec: Encoder<Body> | null,
     req: ServerRequest,
     res: ServerResponse,
     cont: (body: Body) => void
@@ -180,9 +174,9 @@ export class Router<Context> {
         data += chunk;
       });
       req.on("end", () => {
-        const decodeResult = codec.decode(data);
+        const decodeResult = codec.parse(data);
         decodeResult.caseOf({
-          Left: (error: string) => {
+          Left: (error: Error) => {
             res.writeHead(400, { "Content-Type": "text/plain" });
             res.write("Error decoding body: " + error);
             res.end();
@@ -216,7 +210,7 @@ export class Router<Context> {
         route: route,
         method: "GET",
         body: null,
-        returns: nullType,
+        returns: builtinEncoders.null,
       },
       needsAuthorization,
       async function (ctx, p, _b, auth, req, res) {
@@ -276,7 +270,7 @@ export class Router<Context> {
       needsAuthorization,
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
-          const responseAsString = JSON.stringify(newSpec.returns.encode(r));
+          const responseAsString = JSON.stringify(newSpec.returns.serialize(r));
           writeDataWithOrWithoutCompression(req, res, responseAsString, opts);
         });
       }
@@ -320,11 +314,11 @@ export class Router<Context> {
           }
 
           if (s.tag === "progress") {
-            res.write(`progress:${newSpec.progress.encode(s.p)}\n\n`);
+            res.write(`progress:${newSpec.progress.serialize(s.p)}\n\n`);
           } else if (s.tag === "error") {
             res.end(`error:${s.error}\n\n`);
           } else if (s.tag === "response") {
-            res.end(`response:${newSpec.returns.encode(s.r)}\n\n`);
+            res.end(`response:${newSpec.returns.serialize(s.r)}\n\n`);
           } else {
             checkAllCasesHandled(s);
           }
@@ -336,7 +330,7 @@ export class Router<Context> {
           .then(function (r) {
             if (responded === false) {
               const responseAsString = JSON.stringify(
-                newSpec.returns.encode(r)
+                newSpec.returns.serialize(r)
               );
               writeDataWithOrWithoutCompression(
                 req,
@@ -383,7 +377,7 @@ export class Router<Context> {
       id: number
     ): string {
       return `data:${JSON.stringify(
-        newSpec.returns.encode(toPush)
+        newSpec.returns.serialize(toPush)
       )}\nid:${id}\n\n`;
     };
 
@@ -439,7 +433,7 @@ export class Router<Context> {
         route: newSpec.route,
         method: "GET",
         body: null,
-        returns: nullType,
+        returns: builtinEncoders.null,
       },
       needsAuthorization,
       async function (_ctx, p, _b, _auth, req, res) {

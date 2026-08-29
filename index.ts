@@ -3,7 +3,6 @@ export const h = h2;
 
 export * as Route from "./route";
 export * as Router from "./router";
-export * as RouterSwagger from "./router.swagger";
 export * as Network from "./network";
 export * as NetworkSSE from "./network.sse";
 export * as NetworkRemote from "./network.remote";

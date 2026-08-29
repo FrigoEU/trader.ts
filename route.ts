@@ -21,6 +21,7 @@ export interface Route<Params> {
 }
 
 interface BuiltinTypeMapping {
+  null: null;
   string: string;
   number: number;
   "number|null": number | null;
@@ -201,7 +202,15 @@ export const builtinEncoders: {
     },
     swaggerType: "string",
   },
+  null: {
+    serialize: (_n: null) => "null",
+    parse: (n: string) =>
+      n === "null"
+        ? Right(null)
+        : Left(new Error("Invalid null representation")),
+  },
 };
+
 // const nullableStringEncoder:
 function parseNumber(str: string): Either<Error, number> {
   const res = Number.parseFloat(str);
