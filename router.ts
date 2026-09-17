@@ -15,7 +15,7 @@ declare module "http" {
     write(
       chunk: string | Uint8Array,
       encoding: BufferEncoding,
-      callback?: (err: Error) => void
+      callback?: (err: Error) => void,
     ): boolean;
   }
 }
@@ -28,7 +28,7 @@ const isDev = process.env.NODE_ENV || "development" === "development";
 function checkMoreGeneralRoutes(
   existingSpecs: InternalSpec<any, any, any>[],
   newMethod: HTTPMethod,
-  newRoute: Route<any>
+  newRoute: Route<any>,
 ) {
   function routePartsToStringForComparison(r: Route<any>) {
     return r.parts
@@ -48,8 +48,7 @@ function checkMoreGeneralRoutes(
   const moreGeneralRoute = existingSpecs.find(
     (r) =>
       r.method === newMethod &&
-      routePartsToStringForComparison(newRoute) ===
-        routePartsToStringForComparison(r.route)
+      routePartsToStringForComparison(newRoute) === routePartsToStringForComparison(r.route),
   );
   if (moreGeneralRoute) {
     throw new Error(`
@@ -64,15 +63,15 @@ export type HTTPMethod = "GET" | "PUT" | "POST" | "DELETE";
 
 // No-op function, just to check APISpec creation and to infer types
 export function apiSpec<UrlParams, Body, Returns>(
-  spec: APISpec<UrlParams, Body, Returns>& {
+  spec: APISpec<UrlParams, Body, Returns> & {
     progress?: "use apiSpecWithProgress";
-  }
+  },
 ): APISpec<UrlParams, Body, Returns> {
   return spec;
 }
 
 export function apiSpecWithProgress<UrlParams, Body, Returns, Progress>(
-  spec: APISpecWithProgress<UrlParams, Body, Returns, Progress>
+  spec: APISpecWithProgress<UrlParams, Body, Returns, Progress>,
 ): APISpecWithProgress<UrlParams, Body, Returns, Progress> {
   return spec;
 }
@@ -94,7 +93,7 @@ export type APISpecWithProgress<Params, Body, Returns, Progress> = {
 
 // No-op function, just to check SSESpec creation and to infer types
 export function sseSpec<UrlParams, Returns>(
-  spec: SSESpec<UrlParams, Returns>
+  spec: SSESpec<UrlParams, Returns>,
 ): SSESpec<UrlParams, Returns> {
   return spec;
 }
@@ -104,26 +103,15 @@ export type SSESpec<Params, Returns> = {
   returns: Encoder<Returns>;
 };
 
-export type GetReturnTypeFromApiSpec<T> = T extends APISpec<
-  any,
-  any,
-  infer Returns
->
-  ? Returns
-  : never;
+export type GetReturnTypeFromApiSpec<T> =
+  T extends APISpec<any, any, infer Returns> ? Returns : never;
 
 export type InternalSpec<Context, Params, Token> = {
   route: Route<Params>;
   method: HTTPMethod;
   body: Encoder<any> | null;
   returns: "sse" | "html" | Encoder<any> | null;
-  run: (
-    opts: RunOptions,
-    ctx: Context,
-    req: ServerRequest,
-    res: ServerResponse,
-    p: Params
-  ) => void;
+  run: (opts: RunOptions, ctx: Context, req: ServerRequest, res: ServerResponse, p: Params) => void;
   needsAuthorization: null | authfunc<Context, Token, Params>;
   tags: { name: string; comment: string }[];
 };
@@ -131,14 +119,9 @@ export type InternalSpec<Context, Params, Token> = {
 export type authfunc<Context, Token, Params> = (
   req: ServerRequest,
   context: Context,
-  params: Params
+  params: Params,
 ) => Promise<
-  Either<
-    | string
-    | { tag: "redirect"; redirectUrl: string }
-    | [number, OutgoingHttpHeaders],
-    Token
-  >
+  Either<string | { tag: "redirect"; redirectUrl: string } | [number, OutgoingHttpHeaders], Token>
 >;
 
 type RunOptions = { redirectOnUnauthorizedPage: string | null };
@@ -163,11 +146,11 @@ export class Router<Context> {
     codec: Encoder<Body> | null,
     req: ServerRequest,
     res: ServerResponse,
-    cont: (body: Body) => void
+    cont: (body: Body) => void,
   ): void {
     if (codec === null) {
       cont(
-        (null as unknown) as Body /* We know this is correct because only then newSpec.body === null */
+        null as unknown as Body /* We know this is correct because only then newSpec.body === null */,
       );
     } else {
       // Gather the incoming body and run the actual implementation with the parsed body
@@ -182,10 +165,17 @@ export class Router<Context> {
             res.writeHead(400, { "Content-Type": "text/plain" });
             res.write("Error decoding body: " + error);
             res.end();
-            console.error("Encountered error during body decoding.");
-            console.error(`Incoming url: ${req.headers.host}${req.url}`);
-            console.error(`Incoming body: ${data}`);
-            console.error(`Error: ${error}`);
+            console.error(
+              JSON.stringify({
+                msg: "Encountered error during body decoding",
+                level: "error",
+                host: req.headers.host,
+                url: req.url,
+                err: String(error),
+                stack: error instanceof Error ? error.stack : undefined,
+                body: data,
+              }),
+            );
           },
           Right: (decodedBody: Body) => {
             cont(decodedBody);
@@ -203,9 +193,9 @@ export class Router<Context> {
       p: Params,
       auth: Token,
       req: ServerRequest,
-      res: ServerResponse
+      res: ServerResponse,
     ) => Promise<HTMLElement | { tag: "redirect"; url: string }>,
-    opts?: { dontCompress?: boolean }
+    opts?: { dontCompress?: boolean },
   ): void {
     this.custom<Params, null, null, Token>(
       {
@@ -224,10 +214,7 @@ export class Router<Context> {
             res.end();
           } else {
             res.setHeader("Content-Type", "text/html; charset=utf-8");
-            res.setHeader(
-              "Cache-Control",
-              "no-cache, no-store, must-revalidate"
-            );
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             res.setHeader("Pragma", "no-cache");
             res.setHeader("Expires", "0");
             if (opts?.dontCompress === true) {
@@ -235,15 +222,11 @@ export class Router<Context> {
               res.write("<!DOCTYPE html>");
               res.end(r.outerHTML);
             } else {
-              writeDataWithCompression(
-                req,
-                res,
-                "<!DOCTYPE html>" + r.outerHTML
-              );
+              writeDataWithCompression(req, res, "<!DOCTYPE html>" + r.outerHTML);
             }
           }
         });
-      }
+      },
     );
   }
 
@@ -263,19 +246,19 @@ export class Router<Context> {
       b: Body,
       auth: Token,
       req: ServerRequest,
-      res: ServerResponse
+      res: ServerResponse,
     ) => Promise<Returns>,
-    opts?: { dontCompress?: boolean }
+    opts?: { dontCompress?: boolean },
   ): void {
     this.custom<Params, Body, Returns, Token>(
       newSpec,
       needsAuthorization,
       async function (ctx, p, b, auth, req, res) {
         return run(ctx, p, b, auth, req, res).then(function (r) {
-          const responseAsString = newSpec.returns.serialize(r); 
+          const responseAsString = newSpec.returns.serialize(r);
           writeDataWithOrWithoutCompression(req, res, responseAsString, opts);
         });
-      }
+      },
     );
   }
 
@@ -289,9 +272,9 @@ export class Router<Context> {
       auth: Token,
       req: ServerRequest,
       res: ServerResponse,
-      sendProgress: (p: Progress) => void
+      sendProgress: (p: Progress) => void,
     ) => Promise<Returns>,
-    opts?: { dontCompress?: boolean }
+    opts?: { dontCompress?: boolean },
   ): void {
     this.custom<Params, Body, Returns, Token>(
       newSpec,
@@ -302,7 +285,7 @@ export class Router<Context> {
           s:
             | { tag: "progress"; p: Progress }
             | { tag: "error"; error: string }
-            | { tag: "response"; r: Returns }
+            | { tag: "response"; r: Returns },
         ) {
           if (responded === false) {
             res.writeHead(200, {
@@ -332,12 +315,7 @@ export class Router<Context> {
           .then(function (r) {
             if (responded === false) {
               const responseAsString = newSpec.returns.serialize(r);
-              writeDataWithOrWithoutCompression(
-                req,
-                res,
-                responseAsString,
-                opts
-              );
+              writeDataWithOrWithoutCompression(req, res, responseAsString, opts);
             } else {
               writeBack({ tag: "response", r });
             }
@@ -347,7 +325,7 @@ export class Router<Context> {
             console.error("Error in api with progress");
             reportError(newSpec, req, b, 0, err);
           });
-      }
+      },
     );
   }
 
@@ -363,7 +341,7 @@ export class Router<Context> {
     needsAuthorization: authfunc<Context, Token, Params>,
     run: (newItem: (toPush: Returns[]) => void) => void,
     filter: (p: Params, r: Returns) => boolean,
-    removeItemsFromCacheAfterMinutes: number
+    removeItemsFromCacheAfterMinutes: number,
   ): void {
     // Id of the item we'll send next
     let myLastEventId = 0;
@@ -372,10 +350,7 @@ export class Router<Context> {
     // List of items we've sent previously
     const cache: [number, joda.Instant, Returns[]][] = [];
 
-    const makeMessage = function makeMessage(
-      toPush: Returns[],
-      id: number
-    ): string {
+    const makeMessage = function makeMessage(toPush: Returns[], id: number): string {
       return `data:${newSpec.returns.serialize(toPush)}\nid:${id}\n\n`;
     };
 
@@ -448,10 +423,9 @@ export class Router<Context> {
 
         const lastEventIdStr =
           req.headers["last-event-id"] ||
-          new URL(
-            req.url || "",
-            "http://localhost" /* not important */
-          ).searchParams.get("last-event-id");
+          new URL(req.url || "", "http://localhost" /* not important */).searchParams.get(
+            "last-event-id",
+          );
 
         if (lastEventIdStr === null || lastEventIdStr === undefined) {
           // If the client's last-event-id is null, we don't give anything but new events, since the client didn't miss anything, presumably getting all relevant data from an initial load call
@@ -462,26 +436,23 @@ export class Router<Context> {
         } else {
           const lastEventId = parseInt(
             Array.isArray(lastEventIdStr) ? lastEventIdStr[0]! : lastEventIdStr,
-            10
+            10,
           );
           if (isNaN(lastEventId)) {
             return;
           }
           // If the client's last-event-id is lower than what we have, we'll give everything the client doesn't have yet
           if (lastEventId < myLastEventId) {
-            const itemsToSend = takeRightWhile(
-              cache,
-              ([id, _t, _i]) => id > lastEventId
-            );
+            const itemsToSend = takeRightWhile(cache, ([id, _t, _i]) => id > lastEventId);
             res.write(
               itemsToSend
                 .map(([id, _t, items]) =>
                   makeMessage(
                     items.filter((item) => filter(p, item)),
-                    id
-                  )
+                    id,
+                  ),
                 )
-                .join("")
+                .join(""),
             );
             return;
           }
@@ -492,15 +463,15 @@ export class Router<Context> {
                 .map(([id, _t, items]) =>
                   makeMessage(
                     items.filter((item) => filter(p, item)),
-                    id
-                  )
+                    id,
+                  ),
                 )
-                .join("")
+                .join(""),
             );
             return;
           }
         }
-      }
+      },
     );
   }
 
@@ -514,8 +485,8 @@ export class Router<Context> {
       b: Body,
       auth: Token,
       req: ServerRequest,
-      res: ServerResponse
-    ) => Promise<void>
+      res: ServerResponse,
+    ) => Promise<void>,
   ): void {
     const router = this;
 
@@ -535,7 +506,7 @@ export class Router<Context> {
         ctx: Context,
         req: ServerRequest,
         res: ServerResponse,
-        p: Params
+        p: Params,
       ) {
         // First we get body, then authorization
         // Initially, it was the other way around. But this caused problems as the authFunc is/can be async. So
@@ -544,16 +515,12 @@ export class Router<Context> {
         router.getBody(newSpec.body, req, res, function (b: Body) {
           const authP: Promise<
             Either<
-              | string
-              | { tag: "redirect"; redirectUrl: string }
-              | [number, OutgoingHttpHeaders],
+              string | { tag: "redirect"; redirectUrl: string } | [number, OutgoingHttpHeaders],
               Token
             >
           > = needsAuthorization(req, ctx, p) as Promise<
             Either<
-              | string
-              | { tag: "redirect"; redirectUrl: string }
-              | [number, OutgoingHttpHeaders],
+              string | { tag: "redirect"; redirectUrl: string } | [number, OutgoingHttpHeaders],
               Token
             >
           >;
@@ -606,20 +573,26 @@ export class Router<Context> {
                 },
               });
             },
-            (err) => {
+            (error) => {
               res.writeHead(500, { "Content-Type": "text/plain" });
-              res.write("Server error: " + err);
+              res.write("Server error: " + error);
               res.end();
+
               console.error(
-                "Encountered error during run function of authorization."
+                JSON.stringify({
+                  level: "error",
+                  msg: "Encountered error during run function of authorization.",
+                  host: req.headers.host,
+                  url: req.url,
+                  route: newSpec.route.__rawUrl,
+                  headers: req.headers,
+                  err: String(error),
+                  stack: error instanceof Error ? error.stack : undefined,
+                  details: "detail" in error ? error.detail : undefined,
+                  body: b,
+                }),
               );
-              console.error(`Incoming url: ${req.headers.host}${req.url}`);
-              console.error(`Headers: ${JSON.stringify(req.headers)}`);
-              console.error(`Server error: ${err}`);
-              if ("detail" in err) {
-                console.error(`Error detail: ${err.detail}`);
-              }
-            }
+            },
           );
         });
       },
@@ -643,12 +616,7 @@ export class Router<Context> {
    * }).listen(6666);
    */
 
-  run(
-    opts: RunOptions,
-    ctx: Context,
-    req: ServerRequest,
-    res: ServerResponse
-  ): boolean {
+  run(opts: RunOptions, ctx: Context, req: ServerRequest, res: ServerResponse): boolean {
     const url = req.url;
 
     // This might look slow, but it's actually really fast.
@@ -669,16 +637,14 @@ export class Router<Context> {
 
   // Pass a nested object of routes to make sure all routes in this object are implemented
   checkAllRoutesImplemented(
-    routes: RoutesRec
+    routes: RoutesRec,
   ): null | Route<any> | APISpec<any, any, any> | SSESpec<any, any> {
     if (!isDev) {
       return null;
     }
     if ((routes as Route<any>).link !== undefined) {
       const r = routes as Route<any>;
-      const foundSpec = this.specs.find(
-        (s) => s.route === r && s.method === "GET"
-      );
+      const foundSpec = this.specs.find((s) => s.route === r && s.method === "GET");
       if (foundSpec) {
         return null;
       } else {
@@ -689,9 +655,7 @@ export class Router<Context> {
       (routes as APISpec<any, any, any>).method === undefined
     ) {
       const sp = routes as SSESpec<any, any>;
-      const foundSpec = this.specs.find(
-        (s) => s.route === sp.route && s.method === "GET"
-      );
+      const foundSpec = this.specs.find((s) => s.route === sp.route && s.method === "GET");
       if (foundSpec) {
         return null;
       } else {
@@ -699,9 +663,7 @@ export class Router<Context> {
       }
     } else if ((routes as APISpec<any, any, any>).route !== undefined) {
       const sp = routes as APISpec<any, any, any>;
-      const foundSpec = this.specs.find(
-        (s) => s.route === sp.route && s.method === sp.method
-      );
+      const foundSpec = this.specs.find((s) => s.route === sp.route && s.method === sp.method);
       if (foundSpec) {
         return null;
       } else {
@@ -764,7 +726,7 @@ function writeDataWithOrWithoutCompression(
   req: ServerRequest,
   res: ServerResponse,
   responseAsString: string,
-  opts?: { dontCompress?: boolean }
+  opts?: { dontCompress?: boolean },
 ) {
   if (opts?.dontCompress === true) {
     res.writeHead(200, {
@@ -783,19 +745,21 @@ function reportError(
   req: IncomingMessage,
   b: any,
   returnCode: number,
-  error: any
+  error: any,
 ) {
   if (!runningInTest) {
-    console.error("");
-    console.error("Encountered error during run function.");
-    console.error(`Incoming url: ${req.headers.host}${req.url}`);
-    console.error(`Matched route: ${newSpec.route.__rawUrl}`);
-    console.error(`Incoming body: ${JSON.stringify(b)}`);
-    console.error(`Return code: ${returnCode}`);
-    console.error(`Server error: ${error}`);
-    if (error instanceof Error) {
-      console.error(`Stacktrace: ${error.stack}`);
-      console.error("");
-    }
+    JSON.stringify({
+      level: "error",
+      msg: "Encountered error during run function",
+      host: req.headers.host,
+      url: req.url,
+      route: newSpec.route.__rawUrl,
+      headers: req.headers,
+      err: String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      details: "detail" in error ? error.detail : undefined,
+      body: b,
+      status: returnCode,
+    });
   }
 }

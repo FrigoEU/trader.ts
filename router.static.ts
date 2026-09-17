@@ -59,11 +59,30 @@ export async function findStaticFilesToInclude<
   return out;
 }
 
+// The client (browser, bot, uptime-check, ...) hung up before we finished
+// writing the response: navigation away, tab close, reload, aborted fetch.
+// There is nothing wrong and nothing to do, so don't log it.
+function isClientDisconnected(err: unknown): boolean {
+  const code = (err as { code?: unknown } | null | undefined)?.code;
+  return (
+    code === "ERR_STREAM_PREMATURE_CLOSE" ||
+    code === "ERR_STREAM_UNABLE_TO_PIPE" ||
+    code === "ERR_STREAM_DESTROYED" ||
+    code === "ERR_STREAM_WRITE_AFTER_END" ||
+    code === "EPIPE" ||
+    code === "ECONNRESET"
+  );
+}
+
 export function writeDataWithCompression(
   req: ServerRequest,
   res: ServerResponse,
   data: string | Buffer
 ) {
+  if (res.destroyed || res.writableEnded) {
+    // Client already gone, writing would only throw
+    return;
+  }
   const size = typeof data === "string" ? data.length : data.byteLength;
   if (size < 1000) {
     // No compression
@@ -90,7 +109,7 @@ export function writeDataWithCompression(
         }),
         res,
         (err) => {
-          if (err) {
+          if (err && !isClientDisconnected(err)) {
             console.error("Failed Brotli compression: " + err);
           }
         }
@@ -103,7 +122,7 @@ export function writeDataWithCompression(
       res.setHeader("Content-Encoding", "gzip");
       const readable = stream.Readable.from(data);
       stream.pipeline(readable, zlib.createGzip({ level: 6 }), res, (err) => {
-        if (err) {
+        if (err && !isClientDisconnected(err)) {
           console.error("Failed gzip: " + err);
         }
       });
@@ -113,12 +132,17 @@ export function writeDataWithCompression(
       res.end(data);
     }
   } catch (err) {
+    if (isClientDisconnected(err)) {
+      return;
+    }
     console.error(
       "Failed sending data: " +
         JSON.stringify(tryExtractErrorMessage(err), null, 2)
     );
-    res.writeHead(404);
-    res.end(JSON.stringify(err, null, 2));
+    if (!res.headersSent) {
+      res.writeHead(500);
+    }
+    res.end(JSON.stringify(tryExtractErrorMessage(err), null, 2));
   }
 }
 
