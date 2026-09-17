@@ -1,15 +1,18 @@
 {
   "name": "trader.ts",
-  "version": "1.10.7",
-  "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
+  "version": "1.10.8",
+  "files": [
+    "**/*.ts",
+    "**/*.tsx",
+    "!test/**/*",
+    "!example/**/*"
+  ],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {
-    "@types/mime-types": "^3.0.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
     "currency.js": "^2.0.4",
-    "mime-types": "^3.0.2",
     "openapi-types": "^7.2.3",
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "2.1.0",
