@@ -1,10 +1,11 @@
 {
   "name": "trader.ts",
-  "version": "1.10.6",
+  "version": "1.10.7",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
   "dependencies": {
+    "@types/mime-types": "^3.0.1",
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
     "currency.js": "^2.0.4",
@@ -26,7 +27,6 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.4.0",
-    "@types/mime-types": "^3.0.1",
     "@types/node": "^20.11.26",
     "node-mocks-http": "^1.10.1",
     "oxfmt": "^0.42.0",
