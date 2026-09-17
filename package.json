@@ -1,6 +1,6 @@
 {
   "name": "trader.ts",
-  "version": "1.10.4",
+  "version": "1.10.5",
   "files": ["**/*.ts", "**/*.tsx", "!test/**/*", "!example/**/*"],
   "main": "index.ts",
   "sideEffects": false,
@@ -8,6 +8,7 @@
     "abort-controller": "^3.0.0",
     "cookie": "^0.4.1",
     "currency.js": "^2.0.4",
+    "mime-types": "^3.0.2",
     "openapi-types": "^7.2.3",
     "postgres": "^2.0.0-beta.5",
     "purify-ts": "2.1.0",
@@ -25,11 +26,11 @@
   },
   "devDependencies": {
     "@types/cookie": "^0.4.0",
+    "@types/mime-types": "^3.0.1",
     "@types/node": "^20.11.26",
     "node-mocks-http": "^1.10.1",
     "prettier": "2.2.1",
     "tsx": "^4.19.2",
-    "typescript": "5.3.3",
-    "typescript-language-server": "^4.3.3"
+    "typescript": "npm:typescript@^7.0.2"
   }
 }

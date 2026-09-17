@@ -11,6 +11,7 @@
     "jsxFactory": "h",
     "jsxFragmentFactory": "h",
     "experimentalDecorators": true,
+    "types": ["node"],
     "lib": ["es2019", "dom"]
   },
   "include": [

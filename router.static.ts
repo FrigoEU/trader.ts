@@ -4,7 +4,7 @@ import * as stream from "stream";
 import { debuglog } from "util";
 import * as zlib from "zlib";
 import { ServerRequest, ServerResponse } from "./router";
-import { tryExtractErrorMessage } from "./utils";
+import { tryExtractErrorMessage, getMimeTypeForPath } from "./utils";
 
 const log = debuglog("static");
 
@@ -147,15 +147,8 @@ export async function sendStatic(
     if (caching === "do-infinite-caching") {
       res.setHeader("Cache-Control", "public,max-age=604800,immutable");
       res.setHeader("Expires", "Wed, 21 Oct 2099 07:28:00 GMT");
-      if (path.endsWith(".svg")) {
-        res.setHeader("Content-Type", "image/svg+xml");
-      }
-      if (path.endsWith(".png")) {
-        res.setHeader("Content-Type", "image/png");
-      }
-      if (path.endsWith(".js")) {
-        res.setHeader("Content-Type", "application/javascript");
-      }
+      const mimetype = getMimeTypeForPath(path);
+      res.setHeader("Content-Type", mimetype);
     }
     res.writeHead(200);
     res.end(data);

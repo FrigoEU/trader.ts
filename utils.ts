@@ -1,3 +1,5 @@
+import { lookup } from "mime-types";
+
 export function checkAllCasesHandled(a: never): never {
   throw new Error(`Can't be here: ${JSON.stringify(a)}`);
 }
@@ -25,4 +27,13 @@ export function mapPartial<A, B>(
     i++;
   }
   return res;
+}
+
+export function getMimeTypeForPath(url: string): string {
+  const resolved = lookup(url);
+  if (resolved !== false) {
+    return resolved;
+  } else {
+    return "application/octet-stream";
+  }
 }
